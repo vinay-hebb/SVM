@@ -1,3 +1,16 @@
+'''
+Script to understand internal parameters of SVM with 2 features
+
+Input  : Size of dataset to experiment
+Output : Plot containing Generated data, Support vectors, separating hyperplane, 
+
+High level flow:
+1) Generates data (can be modified to generate interesting data)
+2) Splits data into train, test datasets
+3) Fits Linear SVM
+4) Plots data and classifier, prints relevant internal variables
+
+'''
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
