@@ -1,0 +1,1 @@
+# Script to understand SVM
