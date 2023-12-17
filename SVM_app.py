@@ -92,7 +92,7 @@ def generate_decision_boundary(X, y, W, b, eq=True):
     # W_normal = go.Scatter(x=W_vec_x, y=W_vec_y, marker= dict(size=20,symbol= "arrow-bar-up", angleref="previous"), showlegend=False)
     # fig.add_trace(W_normal)
     fig.update_traces(marker=dict(size=12, line=dict(width=2, color='DarkSlateGrey')), selector=dict(mode='markers'))
-    fig.update_layout(title=f'Hyp eqn : {W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 0',xaxis_title='$X1$',yaxis_title='$X2$',width=800, height=800, coloraxis_showscale=False)
+    fig.update_layout(title=f'Hyp eqn : {W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 0',xaxis_title='$X1$',yaxis_title='$X2$',width=600, height=600, coloraxis_showscale=False)
     if eq:
         xx_arr = yy_arr = np.empty((0))
         xx_arr = np.append(xx_arr, X[:, 0], axis=0)
@@ -117,7 +117,7 @@ def generate_decision_boundary(X, y, W, b, eq=True):
     State("my_state", "data"),
 )
 def process(n_clicks, data):
-    size = 1000
+    size = 20
 
     X, y = create_all_classes_data(size, my_data=False)
 
