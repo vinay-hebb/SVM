@@ -49,6 +49,7 @@ app.layout = html.Div([
     ], fluid=True),
     dcc.Store(id='my_state', storage_type='memory'),
 ])
+server = app.server
 
 def create_data(size, params):
     u, C = params
