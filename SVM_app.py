@@ -16,10 +16,14 @@ from tabulate import tabulate
 from dash import dash_table
 
 # TO DO:
-# 1) Add #samples to generate
-# 2) Reduce button width
-# 3) Clean up extra memory, code
-# 4) Add interesting datasets for users to explore
+# 1) Short introduction text in the web page
+# 2) Add #samples to generate as UI button and add class separation button
+# 3) Reduce marker size
+# 4) Better plotting so that relevant {data points, lines} fills up best use of real estate(with guard distance)
+# 5) Add interesting datasets for users to explore, and their nitry gritties
+# 6) Reduce button width
+# 7) Clean up extra memory, code
+# 8) Write dual problem also
 
 plot_button = dbc.Row([
     dcc.Graph(id='decision-boundary-plot', mathjax=True), 
