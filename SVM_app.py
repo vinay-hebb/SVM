@@ -34,20 +34,14 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.layout = html.Div([
     # https://dash.plotly.com/dash-core-components/markdown
     dcc.Markdown('''
-        ### Primal Optimization problem:
-        This demo tries to provide an insight into the various variables of SVM optimization problem
-        Few things which can be understood are:
-        1) How would the values look like after finding optimal solution?
-           a) \xi_n = 0 if x_n lies on supporting hyperplane corresponding to its class
-           b) 0 < \xi_n < 1 if x_n lies between its own supporting hyperplane and separating hyperplane
-           c) \xi_n > 1 if x_n lies on other side of the separating hyperplane. In which case, x_n is classified incorrectly
-        2) Margin can also according to value \xi_n
-        To Do:
-        1) Add provision for #samples as input
-        2) Better visualization
-        3) Add interesting datasets like moons,.. etc
-        4) Discuss about nonlinear SVM
-        
+        ### Introduction
+        This demo attempts to provide an insight into the various variables of SVM optimization problem. Few insights which a reader can understand are:  
+        1) How would the values look like after finding optimal solution?  
+           a) $\\xi_n$ = 0 if $x_n$ lies on supporting hyperplane corresponding to its class  
+           b) 0 < $\\xi_n$ < 1 if $x_n$ lies between its own supporting hyperplane and separating hyperplane  
+           c) $\\xi_n$ > 1 if $x_n$ lies on other side of the separating hyperplane. In which case, $x_n$ is classified incorrectly  
+        2) Margin also changes according to value $\\xi_n$  
+        ### Primal Optimization problem:        
         $$
         \\begin{equation}
         \\begin{aligned}
@@ -64,6 +58,13 @@ app.layout = html.Div([
             dbc.Col(html.Div(dash_table.DataTable(id="update-table", style_header={'backgroundColor': 'white', 'fontWeight': 'bold'})))
         ]),
     ], fluid=True),
+    dcc.Markdown('''
+        ## To Do:  
+        1) Add provision for #samples as input  
+        2) Better visualization  
+        3) Add interesting datasets like moons,.. etc  
+        4) Discuss about nonlinear SVM  
+        '''),
     dcc.Store(id='my_state', storage_type='memory'),
 ])
 server = app.server
