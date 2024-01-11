@@ -64,6 +64,7 @@ app.layout = html.Div([
         2) Better visualization  
         3) Add interesting datasets like moons,.. etc  
         4) Discuss about nonlinear SVM  
+        5) Ability to move points to get better insights into optimization problem
         '''),
     dcc.Store(id='my_state', storage_type='memory'),
 ])
