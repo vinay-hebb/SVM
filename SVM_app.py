@@ -35,7 +35,7 @@ app.layout = html.Div([
     # https://dash.plotly.com/dash-core-components/markdown
     dcc.Markdown('''
         ### Introduction
-        This demo attempts to provide an insight into the various variables of SVM optimization problem. Few insights which a reader can understand are:  
+        This demo attempts to provide an insight into the various variables of SVM optimization problem. Reader is encouraged to play with demo for better insights. Few insights which a reader can understand are:  
         1) How would the values look like after finding optimal solution?  
            a) $\\xi_n$ = 0 if $x_n$ lies on supporting hyperplane corresponding to its class  
            b) 0 < $\\xi_n$ < 1 if $x_n$ lies between its own supporting and separating hyperplane  
