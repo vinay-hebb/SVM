@@ -38,7 +38,7 @@ app.layout = html.Div([
         This demo attempts to provide an insight into the various variables of SVM optimization problem. Few insights which a reader can understand are:  
         1) How would the values look like after finding optimal solution?  
            a) $\\xi_n$ = 0 if $x_n$ lies on supporting hyperplane corresponding to its class  
-           b) 0 < $\\xi_n$ < 1 if $x_n$ lies between its own supporting hyperplane and separating hyperplane  
+           b) 0 < $\\xi_n$ < 1 if $x_n$ lies between its own supporting and separating hyperplane  
            c) $\\xi_n$ > 1 if $x_n$ lies on other side of the separating hyperplane. In which case, $x_n$ is classified incorrectly  
         2) Margin also changes according to value $\\xi_n$  
         ### Primal Optimization problem:        
