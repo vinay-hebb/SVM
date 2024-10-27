@@ -9,10 +9,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
-COPY app.py .
+COPY SVM_app.py .
 
 # Expose the port
 EXPOSE 7860
 
 # Command to run the application
-CMD ["python", "app.py"]
+CMD ["python", "SVM_app.py"]
