@@ -58,10 +58,12 @@ app.layout = html.Div([
 
     ''', mathjax=True),
     dbc.Container([
-        dbc.Row([
-            dbc.Col(plot_button),
-            dbc.Col(html.Div(dash_table.DataTable(id="update-table", style_header={'backgroundColor': 'white', 'fontWeight': 'bold'})))
-        ]),
+        # dbc.Row([
+            dcc.Graph(id='decision-boundary-plot', mathjax=True), 
+            dbc.Button("Generate & Classify", id="id-plot", color="primary", size="sm"),
+            # plot_button,
+            html.Div(dash_table.DataTable(id="update-table", style_header={'backgroundColor': 'white', 'fontWeight': 'bold'}))
+        # ]),
     ], fluid=True),
     dcc.Markdown('''
         ## To Do:  
