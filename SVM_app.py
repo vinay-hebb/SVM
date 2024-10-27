@@ -170,4 +170,4 @@ def process(n_clicks, data):
     return fig, data, df.to_dict("rows")
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=7860)
+    app.run_server(host='0.0.0.0', debug=False, port=7860)
