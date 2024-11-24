@@ -97,9 +97,10 @@ def create_all_classes_data(n_samples, my_data = True):
                                 n_clusters_per_class=1, class_sep=2.5, flip_y=0)
     return X, y
 
-def generate_hyperplanes(w, b, X):
+def generate_hyperplanes(w, b, X, xx=None):
     a = -w[0] / w[1]
-    xx = np.linspace(X[:, 0].min(), X[:, 0].max())
+    if xx is None:
+        xx = np.linspace(X[:, 0].min(), X[:, 0].max())
     y_hyp = a * xx - (b) / w[1]
     y_hyp1 = a * xx - (b-1) / w[1]
     y_hyp2 = a * xx - (b+1) / w[1]
@@ -115,7 +116,16 @@ def get_plot_extremes(xx_arr, yy_arr):
 def generate_decision_boundary(X, y, W, b, eq=True):
     df = pd.DataFrame({'X1':X[:, 0], 'X2':X[:, 1], 'y':y})
     fig = px.scatter(df, x="X1", y="X2", color="y")
-    xx, y_hyp, y_hyp1, y_hyp2 = generate_hyperplanes(W, b, X)
+    if eq:
+        xx_arr, yy_arr = X[:, 0], X[:, 1]
+        x_min, x_max, y_min, y_max = get_plot_extremes(xx_arr, yy_arr)
+        pad_x, pad_y = 0.3, 0.3
+        fig_minx, fig_maxx, fig_miny, fig_maxy = x_min - abs(pad_x*x_min), x_max + abs(pad_x*x_max), y_min - abs(pad_y*y_min), y_max + abs(pad_y*y_max)
+        fig.update_xaxes(range=[fig_minx, fig_maxx])
+        fig.update_yaxes(range=[fig_miny, fig_maxy])
+        xx, y_hyp, y_hyp1, y_hyp2 = generate_hyperplanes(W, b, X, xx=np.linspace(fig_minx, fig_maxx))
+    else:
+        xx, y_hyp, y_hyp1, y_hyp2 = generate_hyperplanes(W, b, X)
 
     trace_hyperplane = go.Scatter(x=xx,y=y_hyp,mode='lines',line=dict(color='green', width=3),name='Hyperplane', showlegend=False)
     trace_hyperplane1 = go.Scatter(x=xx,y=y_hyp1,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Hyperplane1', showlegend=False)
@@ -135,11 +145,6 @@ def generate_decision_boundary(X, y, W, b, eq=True):
               f'{W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 1<br>'
     fig.update_layout(title={'text': title_s, 'y': 1, 'x': 0.5, 'xanchor': 'center', 'yanchor': 'top'}, 
                       title_font=dict(size=12), xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
-    if eq:
-        xx_arr, yy_arr = np.concatenate([X[:, 0], xx]), np.concatenate([X[:, 1], y_hyp, y_hyp1, y_hyp2])
-        x_min, x_max, y_min, y_max = get_plot_extremes(xx_arr, yy_arr)
-        fig.update_xaxes(range=[x_min, x_max])
-        fig.update_yaxes(range=[y_min, y_max])
     return fig
 
 @app.callback(
