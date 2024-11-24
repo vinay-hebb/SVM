@@ -58,14 +58,16 @@ app.layout = html.Div([
 
     ''', mathjax=True),
     dbc.Container([
-        dcc.Input(id='num-samples', type='number', placeholder='Enter number of samples', min=1, step=1, value=10),
+        dcc.Input(id='num-samples', type='number', placeholder='Enter number of samples', min=1, step=1, value=10, size="sm"),
         dbc.Button("Generate & Classify", id="id-plot", color="primary", size="sm"),
+    ], fluid=True, style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center'}),
+    dbc.Container([
         # dbc.Row([
             dcc.Graph(id='decision-boundary-plot', mathjax=True), 
             # plot_button,
             html.Div(dash_table.DataTable(id="update-table", style_header={'backgroundColor': 'white', 'fontWeight': 'bold'}))
         # ]),
-    ], fluid=True),
+    ], fluid=True, style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center'}),
     dcc.Markdown('''
         ## To Do:  
         1) Add provision for #samples as input  
