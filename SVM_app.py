@@ -59,6 +59,7 @@ app.layout = html.Div([
     ''', mathjax=True),
     dbc.Container([
         dcc.Input(id='num-samples', type='number', placeholder='Enter number of samples', min=1, step=1, value=10, size="sm"),
+        dcc.Input(id='hyperparam-C', type='number', placeholder='Enter Hyperparameter C', min=0, value=1.0, size="sm"),
         dbc.Button("Generate & Classify", id="id-plot", color="primary", size="sm"),
     ], fluid=True, style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center'}),
     dbc.Container([
@@ -153,9 +154,10 @@ def generate_decision_boundary(X, y, W, b, eq=True):
     Output("update-table", "data"),
     Input("id-plot", "n_clicks"),
     State("num-samples", "value"),
+    State("hyperparam-C", "value"),
     State("my_state", "data"),
 )
-def process(n_clicks, n_samples, data):
+def process(n_clicks, n_samples, C, data):
     import pickle
     # state = np.random.get_state()
     # print("Numpy module state:", state)
@@ -169,7 +171,7 @@ def process(n_clicks, n_samples, data):
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20)
     # clf = SVC(C=0.1,kernel='linear')
-    clf = SVC(kernel='linear')
+    clf = SVC(C=C, kernel='linear')
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     a, b = clf.coef_[0]
