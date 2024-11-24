@@ -93,11 +93,9 @@ app.layout = html.Div([
     ], fluid=True, style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center'}),
     dcc.Markdown('''
         ## To Do:  
-        1) Add provision for #samples as input  
-        2) Better visualization  
-        3) Add interesting datasets like moons,.. etc
-        4) Discuss about nonlinear SVM  
-        5) Ability to move points to get better insights into optimization problem
+        1) Add interesting datasets like moons,.. etc
+        2) Discuss about nonlinear SVM  
+        3) Ability to move points to get better insights into optimization problem
         '''),
     dcc.Store(id='my_state', storage_type='memory'),
 ])
@@ -231,14 +229,14 @@ def process(n_clicks, n_samples, C, data, load_data1, load_data2):
                   })
     df['On support hyperplane?'] = 0
     df['On support hyperplane?'] = df[r'$\\xi_n'] < 0.01
-    print(f'Separting Hyperplane equation       : {a:.2f}x1 {b:+.2f}x2 {c:+.2f} = 0')
-    print()
-    print(f"Final Parameters after optimization : ")
-    print(tabulate(df, headers='keys', tablefmt='psql'))
-    print("\nConfusion Matrix: ")
-    print(confusion_matrix(y_test,y_pred))
+    # print(f'Separting Hyperplane equation       : {a:.2f}x1 {b:+.2f}x2 {c:+.2f} = 0')
+    # print()
+    # print(f"Final Parameters after optimization : ")
+    # print(tabulate(df, headers='keys', tablefmt='psql'))
+    # print("\nConfusion Matrix: ")
+    # print(confusion_matrix(y_test,y_pred))
     fig = generate_decision_boundary(X_train, y_train, clf.coef_[0], clf.intercept_[0])
-    print()
+    # print()
     df = df.round(3).astype('str')      # https://stackoverflow.com/a/72322806/11471226
     return fig, data, df.to_dict("records"), n_samples, C
 
