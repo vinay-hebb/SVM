@@ -76,6 +76,9 @@ app.layout = html.Div([
             
             dbc.Col([
                 dbc.Button("Generate & Classify", id="id-plot", color="primary", size="sm"),
+            ], width='auto', className='mr-3'),
+            
+            dbc.Col([
                 dbc.Button("Load data 1", id="load-data1", color="secondary", size="sm"),
                 dbc.Button("Load data 2", id="load-data2", color="secondary", size="sm"),
             ], width='auto'),
@@ -195,17 +198,17 @@ def process(n_clicks, n_samples, C, data, load_data1, load_data2):
     print(changed_id)
     # import pdb; pdb.set_trace()
     if 'load-data1' in changed_id:
-        with open('data1.pkl', 'rb') as f:
+        with open('all_xi_ne_0.pkl', 'rb') as f:
             X, y, n_samples, C = pickle.load(f)
         seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
     elif 'load-data2' in changed_id:
-        with open('data2.pkl', 'rb') as f:
+        with open('some_xi_ne_0.pkl', 'rb') as f:
             X, y, n_samples, C = pickle.load(f)
         seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
     else:
         X, y = create_all_classes_data(n_samples, my_data=False)
     # print(X)
-    # with open('data1.pkl', 'wb') as f:
+    # with open('data2.pkl', 'wb') as f:
     #     pickle.dump([X, y, n_samples, C], f)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20)
