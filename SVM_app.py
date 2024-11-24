@@ -21,14 +21,9 @@ def seed_everything(seed_value):
     np.random.seed(seed_value)
 
 # TO DO:
-# 1) Short introduction text in the web page
-# 2) Add #samples to generate as UI button and add class separation button
-# 3) Reduce marker size
-# 4) Better plotting so that relevant {data points, lines} fills up best use of real estate(with guard distance)
-# 5) Add interesting datasets for users to explore, and their nitry gritties
-# 6) Reduce button width
-# 7) Clean up extra memory, code
-# 8) Write dual problem also
+# 1) Reduce marker size
+# 2) Add interesting datasets for users to explore, and their nitry gritties
+# 3) Write dual problem also
 
 plot_button = dbc.Row([
     dcc.Graph(id='decision-boundary-plot', mathjax=True), 
@@ -39,29 +34,16 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.layout = html.Div([
     # https://dash.plotly.com/dash-core-components/markdown
     dcc.Markdown('''
-        ### Introduction
+        ### Goal
                  
-        This demo attempts to provide an insight into the various variables of SVM optimization problem. Reader is encouraged to play with demo for better insights. Few insights which a reader can understand are:  
+        This demo attempts to provide an insight into the various variables of SVM optimization problem. Reader is encouraged to play with demo for better insights. 
 
-        1. How would the values look like after finding optimal solution?
-           1. $\\xi_n$ = 0 if $x_n$ lies on supporting hyperplane corresponding to its class
-           2. 0 < $\\xi_n$ < 1 if $x_n$ lies between its own supporting and separating hyperplane  
-           3. $\\xi_n$ > 1 if $x_n$ lies on other side of the separating hyperplane. In which case, $x_n$ is classified incorrectly  
-        2. Margin also changes according to value $\\xi_n$
-
-        ### Primal Optimization problem:        
-                 
-        $$
-        \\begin{equation}
-        \\begin{aligned}
-        \\min_{\\mathbf{w},b,\\mathbf{\\xi}} \\quad & \\frac{1}{2} \\|\\mathbf{w}\\|^2 + C \\sum_{n=1}^N \\xi_n \\\\
-        \\text{subject to} \\quad & y_n (<\\mathbf{w},\\mathbf{x_n}> + b) \\geq 1 - \\xi_n \\\\
-        & \\xi_n \\geq 0
-        \\end{aligned}
-        \\end{equation}
-        $$
-
-    ''', mathjax=True),
+        ### Interactive Demo:
+        Few points to Note:  
+        1) Fewer samples makes it easier to get insights  
+        2) Few existing datasets are generated to get quick insights about slack variables  
+        3) When we load existing data, input varaibles can change in UI components, please keep an eye on that  
+    '''),
     dbc.Container([
         dbc.Row([
             dbc.Col([
@@ -79,8 +61,8 @@ app.layout = html.Div([
             ], width='auto', className='mr-3'),
             
             dbc.Col([
-                dbc.Button("Load data 1", id="load-data1", color="secondary", size="sm"),
-                dbc.Button("Load data 2", id="load-data2", color="secondary", size="sm"),
+                dbc.Button("Load dataset 1", id="load-data1", color="secondary", size="sm"),
+                dbc.Button("Load dataset 2", id="load-data2", color="secondary", size="sm"),
             ], width='auto'),
         ], align='center'),
     ], fluid=True, style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center'}),
@@ -92,11 +74,34 @@ app.layout = html.Div([
         # ]),
     ], fluid=True, style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center'}),
     dcc.Markdown('''
+        ### Primal Optimization problem:        
+                 
+        $$
+        \\begin{equation}
+        \\begin{aligned}
+        \\min_{\\mathbf{w},b,\\mathbf{\\xi}} \\quad & \\frac{1}{2} \\|\\mathbf{w}\\|^2 + C \\sum_{n=1}^N \\xi_n \\\\
+        \\text{subject to} \\quad & y_n (<\\mathbf{w},\\mathbf{x_n}> + b) \\geq 1 - \\xi_n \\\\
+        & \\xi_n \\geq 0
+        \\end{aligned}
+        \\end{equation}
+        $$
+
+        ### Insights         
+        Few insights which a reader can understand are:  
+
+        1. How would the values look like after finding optimal solution?
+           1. $\\xi_n$ = 0 if $x_n$ lies on supporting hyperplane corresponding to its class
+           2. 0 < $\\xi_n$ < 1 if $x_n$ lies between its own supporting and separating hyperplane  
+           3. $\\xi_n$ > 1 if $x_n$ lies on other side of the separating hyperplane. In which case, $x_n$ is classified incorrectly  
+        2. Margin also changes according to value $\\xi_n$
+
         ## To Do:  
-        1) Add interesting datasets like moons,.. etc
+        1) Add interesting datasets like moons,.. etc  
         2) Discuss about nonlinear SVM  
-        3) Ability to move points to get better insights into optimization problem
-        '''),
+        3) Ability to move points to get better insights into optimization problem  
+        4) Ability to generate data as per the inputs of user (amount of overlap, variance, ...etc)  
+        5) For extreme inputs, hyperplanes may not be visible (though they are plotted). This will be fixed soon.  
+        ''', mathjax=True),
     dcc.Store(id='my_state', storage_type='memory'),
 ])
 server = app.server
@@ -160,10 +165,9 @@ def generate_decision_boundary(X, y, W, b, eq=True):
     # W_normal = go.Scatter(x=W_vec_x, y=W_vec_y, marker= dict(size=20,symbol= "arrow-bar-up", angleref="previous"), showlegend=False)
     # fig.add_trace(W_normal)
     fig.update_traces(marker=dict(size=12, line=dict(width=2, color='DarkSlateGrey')), selector=dict(mode='markers'))
-    title_s = f'<br>Hyperplane Equations:<br>' + \
-              f'{W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 0<br>' + \
-              f'{W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = -1<br>' + \
-              f'{W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 1<br>'
+    title_s = f'<br>Separating hyperplane: {W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 0<br>' + \
+              f'Supporting hyperplane: {W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = -1<br>' + \
+              f'Supporting hyperplane: {W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 1<br>'
     fig.update_layout(title={'text': title_s, 'y': 1, 'x': 0.5, 'xanchor': 'center', 'yanchor': 'top'}, 
                       title_font=dict(size=12), xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
     return fig
