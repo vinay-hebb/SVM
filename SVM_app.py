@@ -144,15 +144,25 @@ def generate_decision_boundary(X, y, W, b, eq=True):
 )
 def process(n_clicks, data):
     size = 20
+    import pickle
+    # state = np.random.get_state()
+    # print("Numpy module state:", state)
+    # with open('rng_state.pkl', 'wb') as f:
+    #     pickle.dump(state, f)
+    # with open('rng_state.pkl', 'rb') as f:
+    #     loaded_state = pickle.load(f)
+    # np.random.set_state(loaded_state)
 
     X, y = create_all_classes_data(size, my_data=False)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20)
+    # clf = SVC(C=0.1,kernel='linear')
     clf = SVC(kernel='linear')
     clf.fit(X_train, y_train)
     y_pred = clf.predict(X_test)
     a, b = clf.coef_[0]
     c = clf.intercept_[0]
+    # print(f'{a},{b},{c}')
     hyp_eqn = lambda x: np.dot(clf.coef_[0], x) + clf.intercept_[0]
     Xi_eqn = lambda x, y: 1-y*hyp_eqn(x)
     Margin = lambda x: np.abs(hyp_eqn(x)/np.linalg.norm(clf.coef_[0]))  # Considering perpendicular distance
@@ -177,5 +187,5 @@ def process(n_clicks, data):
     return fig, data, df.to_dict("rows")
 
 if __name__ == '__main__':
-    app.run_server(host='0.0.0.0', debug=False, port=7860)
-    # app.run_server(debug=True, port=7860, dev_tools_hot_reload=True)
+    # app.run_server(host='0.0.0.0', debug=False, port=7860)
+    app.run_server(debug=True, port=7860, dev_tools_hot_reload=True)
