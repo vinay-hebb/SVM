@@ -100,18 +100,19 @@ def create_all_classes_data(n_samples, my_data = True):
 def generate_hyperplanes(w, b, X):
     a = -w[0] / w[1]
     xx = np.linspace(X[:, 0].min(), X[:, 0].max())
-    yy = a * xx - (b) / w[1]
-    yy1 = a * xx - (b-1) / w[1]
-    yy2 = a * xx - (b+1) / w[1]
-    return xx, yy, yy1, yy2
+    y_hyp = a * xx - (b) / w[1]
+    y_hyp1 = a * xx - (b-1) / w[1]
+    y_hyp2 = a * xx - (b+1) / w[1]
+    return xx, y_hyp, y_hyp1, y_hyp2
 
 def generate_decision_boundary(X, y, W, b, eq=True):
     df = pd.DataFrame({'X1':X[:, 0], 'X2':X[:, 1], 'y':y})
     fig = px.scatter(df, x="X1", y="X2", color="y")
-    xx, yy, yy1, yy2 = generate_hyperplanes(W, b, X)
-    trace_hyperplane = go.Scatter(x=xx,y=yy,mode='lines',line=dict(color='green', width=3),name='Hyperplane', showlegend=False)
-    trace_hyperplane1 = go.Scatter(x=xx,y=yy1,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Hyperplane1', showlegend=False)
-    trace_hyperplane2 = go.Scatter(x=xx,y=yy2,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Hyperplane2', showlegend=False)
+    xx, y_hyp, y_hyp1, y_hyp2 = generate_hyperplanes(W, b, X)
+
+    trace_hyperplane = go.Scatter(x=xx,y=y_hyp,mode='lines',line=dict(color='green', width=3),name='Hyperplane', showlegend=False)
+    trace_hyperplane1 = go.Scatter(x=xx,y=y_hyp1,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Hyperplane1', showlegend=False)
+    trace_hyperplane2 = go.Scatter(x=xx,y=y_hyp2,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Hyperplane2', showlegend=False)
     fig.add_trace(trace_hyperplane)
     fig.add_trace(trace_hyperplane1)
     fig.add_trace(trace_hyperplane2)
@@ -121,15 +122,15 @@ def generate_decision_boundary(X, y, W, b, eq=True):
     # W_normal = go.Scatter(x=W_vec_x, y=W_vec_y, marker= dict(size=20,symbol= "arrow-bar-up", angleref="previous"), showlegend=False)
     # fig.add_trace(W_normal)
     fig.update_traces(marker=dict(size=12, line=dict(width=2, color='DarkSlateGrey')), selector=dict(mode='markers'))
-    fig.update_layout(title=f'Hyp eqn : {W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 0',xaxis_title='$X1$',yaxis_title='$X2$',width=600, height=600, coloraxis_showscale=False)
+    fig.update_layout(title=f'Hyp eqn : {W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 0',title_x=0.5,xaxis_title='$X1$',yaxis_title='$X2$',width=600, height=600, coloraxis_showscale=False)
     if eq:
         xx_arr = yy_arr = np.empty((0))
         xx_arr = np.append(xx_arr, X[:, 0], axis=0)
         xx_arr = np.append(xx_arr, xx, axis=0)
         yy_arr = np.append(yy_arr, X[:, 1], axis=0)
-        yy_arr = np.append(yy_arr, yy, axis=0)
-        yy_arr = np.append(yy_arr, yy1, axis=0)
-        yy_arr = np.append(yy_arr, yy2, axis=0)
+        yy_arr = np.append(yy_arr, y_hyp, axis=0)
+        yy_arr = np.append(yy_arr, y_hyp1, axis=0)
+        yy_arr = np.append(yy_arr, y_hyp2, axis=0)
         x_min, x_max, y_min, y_max = [xx_arr.min(), xx.max(), yy_arr.min(), yy_arr.max()]
         mid_x, mid_y = x_min + (x_max-x_min)/2, y_min + (y_max-y_min)/2
         s = max([(x_max-x_min), (y_max-y_min)])
@@ -192,3 +193,4 @@ def process(n_clicks, n_samples, data):
 if __name__ == '__main__':
     # app.run_server(host='0.0.0.0', debug=False, port=7860)
     app.run_server(debug=True, port=7860, dev_tools_hot_reload=True)
+
