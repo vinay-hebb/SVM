@@ -58,9 +58,10 @@ app.layout = html.Div([
 
     ''', mathjax=True),
     dbc.Container([
+        dcc.Input(id='num-samples', type='number', placeholder='Enter number of samples', min=1, step=1, value=10),
+        dbc.Button("Generate & Classify", id="id-plot", color="primary", size="sm"),
         # dbc.Row([
             dcc.Graph(id='decision-boundary-plot', mathjax=True), 
-            dbc.Button("Generate & Classify", id="id-plot", color="primary", size="sm"),
             # plot_button,
             html.Div(dash_table.DataTable(id="update-table", style_header={'backgroundColor': 'white', 'fontWeight': 'bold'}))
         # ]),
@@ -140,10 +141,10 @@ def generate_decision_boundary(X, y, W, b, eq=True):
     Output("my_state", "data"),
     Output("update-table", "data"),
     Input("id-plot", "n_clicks"),
+    State("num-samples", "value"),
     State("my_state", "data"),
 )
-def process(n_clicks, data):
-    size = 20
+def process(n_clicks, n_samples, data):
     import pickle
     # state = np.random.get_state()
     # print("Numpy module state:", state)
@@ -153,7 +154,7 @@ def process(n_clicks, data):
     #     loaded_state = pickle.load(f)
     # np.random.set_state(loaded_state)
 
-    X, y = create_all_classes_data(size, my_data=False)
+    X, y = create_all_classes_data(n_samples, my_data=False)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20)
     # clf = SVC(C=0.1,kernel='linear')
