@@ -10,6 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
 COPY SVM_app.py .
+COPY all_xi_ne_0.pkl .
+COPY some_xi_ne_0.pkl .
 
 # Expose the port
 EXPOSE 7860
