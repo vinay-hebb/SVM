@@ -122,21 +122,19 @@ def generate_decision_boundary(X, y, W, b, eq=True):
     # W_normal = go.Scatter(x=W_vec_x, y=W_vec_y, marker= dict(size=20,symbol= "arrow-bar-up", angleref="previous"), showlegend=False)
     # fig.add_trace(W_normal)
     fig.update_traces(marker=dict(size=12, line=dict(width=2, color='DarkSlateGrey')), selector=dict(mode='markers'))
-    fig.update_layout(title=f'Hyp eqn : {W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 0',title_x=0.5,xaxis_title='$X1$',yaxis_title='$X2$',width=600, height=600, coloraxis_showscale=False)
+    title_s = f'<br>Hyperplane Equations:<br>' + \
+              f'{W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 0<br>' + \
+              f'{W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = -1<br>' + \
+              f'{W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 1<br>'
+    fig.update_layout(title=dict(text=title_s, x=0.5, y=0.95), xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
     if eq:
-        xx_arr = yy_arr = np.empty((0))
-        xx_arr = np.append(xx_arr, X[:, 0], axis=0)
-        xx_arr = np.append(xx_arr, xx, axis=0)
-        yy_arr = np.append(yy_arr, X[:, 1], axis=0)
-        yy_arr = np.append(yy_arr, y_hyp, axis=0)
-        yy_arr = np.append(yy_arr, y_hyp1, axis=0)
-        yy_arr = np.append(yy_arr, y_hyp2, axis=0)
+        xx_arr, yy_arr = np.concatenate([X[:, 0], xx]), np.concatenate([X[:, 1], y_hyp, y_hyp1, y_hyp2])
         x_min, x_max, y_min, y_max = [xx_arr.min(), xx.max(), yy_arr.min(), yy_arr.max()]
         mid_x, mid_y = x_min + (x_max-x_min)/2, y_min + (y_max-y_min)/2
-        s = max([(x_max-x_min), (y_max-y_min)])
-        print(f'{x_min, x_max, y_min, y_max}, {mid_x:.2f}, {mid_y:.2f}, {s}')
-        fig.update_xaxes(range=[mid_x - s/2, mid_x + s/2])
-        fig.update_yaxes(range=[mid_y - s/2, mid_y + s/2])
+        req_plot_side_length = max([(x_max-x_min), (y_max-y_min)])
+        print(f'{x_min, x_max, y_min, y_max}, {mid_x:.2f}, {mid_y:.2f}, {req_plot_side_length}')
+        fig.update_xaxes(range=[mid_x - req_plot_side_length/2, mid_x + req_plot_side_length/2])
+        fig.update_yaxes(range=[mid_y - req_plot_side_length/2, mid_y + req_plot_side_length/2])
     return fig
 
 @app.callback(
