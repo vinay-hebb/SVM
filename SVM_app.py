@@ -14,6 +14,11 @@ from sklearn.svm import SVC
 from datetime import datetime
 from tabulate import tabulate
 from dash import dash_table
+import random
+def seed_everything(seed_value):
+    os.environ['PYTHONHASHSEED']=str(seed_value)
+    random.seed(seed_value)
+    np.random.seed(seed_value)
 
 # TO DO:
 # 1) Short introduction text in the web page
@@ -71,6 +76,8 @@ app.layout = html.Div([
             
             dbc.Col([
                 dbc.Button("Generate & Classify", id="id-plot", color="primary", size="sm"),
+                dbc.Button("Load data 1", id="load-data1", color="secondary", size="sm"),
+                dbc.Button("Load data 2", id="load-data2", color="secondary", size="sm"),
             ], width='auto'),
         ], align='center'),
     ], fluid=True, style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center'}),
@@ -85,7 +92,7 @@ app.layout = html.Div([
         ## To Do:  
         1) Add provision for #samples as input  
         2) Better visualization  
-        3) Add interesting datasets like moons,.. etc  
+        3) Add interesting datasets like moons,.. etc
         4) Discuss about nonlinear SVM  
         5) Ability to move points to get better insights into optimization problem
         '''),
@@ -123,7 +130,7 @@ def get_plot_extremes(xx_arr, yy_arr):
     x_min, x_max, y_min, y_max = [xx_arr.min(), xx_arr.max(), yy_arr.min(), yy_arr.max()]
     mid_x, mid_y = x_min + (x_max-x_min)/2, y_min + (y_max-y_min)/2
     req_plot_side_length = max([(x_max-x_min), (y_max-y_min)])
-    print(f'{x_min, x_max, y_min, y_max}, {mid_x:.2f}, {mid_y:.2f}, {req_plot_side_length}')
+    # print(f'{x_min, x_max, y_min, y_max}, {mid_x:.2f}, {mid_y:.2f}, {req_plot_side_length}')
     return mid_x - req_plot_side_length/2, mid_x + req_plot_side_length/2, mid_y - req_plot_side_length/2, mid_y + req_plot_side_length/2
 
 def generate_decision_boundary(X, y, W, b, eq=True):
@@ -164,12 +171,16 @@ def generate_decision_boundary(X, y, W, b, eq=True):
     Output('decision-boundary-plot', 'figure'),
     Output("my_state", "data"),
     Output("update-table", "data"),
+    Output("num-samples", "value"),
+    Output("hyperparam-C", "value"),
     Input("id-plot", "n_clicks"),
     State("num-samples", "value"),
     State("hyperparam-C", "value"),
     State("my_state", "data"),
+    Input("load-data1", "n_clicks"),
+    Input("load-data2", "n_clicks"),
 )
-def process(n_clicks, n_samples, C, data):
+def process(n_clicks, n_samples, C, data, load_data1, load_data2):
     import pickle
     # state = np.random.get_state()
     # print("Numpy module state:", state)
@@ -179,7 +190,23 @@ def process(n_clicks, n_samples, C, data):
     #     loaded_state = pickle.load(f)
     # np.random.set_state(loaded_state)
 
-    X, y = create_all_classes_data(n_samples, my_data=False)
+    print(f'{datetime.now()} : Process : {n_clicks=}, {n_samples=}, {C=}, {load_data1=}, {load_data2=}')
+    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    print(changed_id)
+    # import pdb; pdb.set_trace()
+    if 'load-data1' in changed_id:
+        with open('data1.pkl', 'rb') as f:
+            X, y, n_samples, C = pickle.load(f)
+        seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
+    elif 'load-data2' in changed_id:
+        with open('data2.pkl', 'rb') as f:
+            X, y, n_samples, C = pickle.load(f)
+        seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
+    else:
+        X, y = create_all_classes_data(n_samples, my_data=False)
+    # print(X)
+    # with open('data1.pkl', 'wb') as f:
+    #     pickle.dump([X, y, n_samples, C], f)
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20)
     # clf = SVC(C=0.1,kernel='linear')
@@ -210,7 +237,7 @@ def process(n_clicks, n_samples, C, data):
     fig = generate_decision_boundary(X_train, y_train, clf.coef_[0], clf.intercept_[0])
     print()
     df = df.round(3).astype('str')      # https://stackoverflow.com/a/72322806/11471226
-    return fig, data, df.to_dict("rows")
+    return fig, data, df.to_dict("records"), n_samples, C
 
 if __name__ == '__main__':
     # app.run_server(host='0.0.0.0', debug=False, port=7860)
