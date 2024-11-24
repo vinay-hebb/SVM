@@ -126,7 +126,8 @@ def generate_decision_boundary(X, y, W, b, eq=True):
               f'{W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 0<br>' + \
               f'{W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = -1<br>' + \
               f'{W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 1<br>'
-    fig.update_layout(title=dict(text=title_s, x=0.5, y=0.95), xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
+    fig.update_layout(title={'text': title_s, 'y': 1, 'x': 0.5, 'xanchor': 'center', 'yanchor': 'top'}, 
+                      title_font=dict(size=12), xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
     if eq:
         xx_arr, yy_arr = np.concatenate([X[:, 0], xx]), np.concatenate([X[:, 1], y_hyp, y_hyp1, y_hyp2])
         x_min, x_max, y_min, y_max = [xx_arr.min(), xx.max(), yy_arr.min(), yy_arr.max()]
