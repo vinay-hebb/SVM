@@ -245,6 +245,8 @@ def process(n_clicks, n_samples, C, data, load_data1, load_data2):
     return fig, data, df.to_dict("records"), n_samples, C
 
 if __name__ == '__main__':
-    # app.run_server(host='0.0.0.0', debug=False, port=7860)
-    app.run_server(debug=True, port=7860, dev_tools_hot_reload=True)
+    if 'SPACE_ID' in os.environ:
+        app.run_server(host='0.0.0.0', debug=False, port=7860)
+    else:
+        app.run_server(debug=True, port=7860, dev_tools_hot_reload=True)
 
