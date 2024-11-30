@@ -25,11 +25,6 @@ def seed_everything(seed_value):
 # 2) Add interesting datasets for users to explore, and their nitry gritties
 # 3) Write dual problem also
 
-plot_button = dbc.Row([
-    dcc.Graph(id='decision-boundary-plot', mathjax=True), 
-    dbc.Button("Generate & Classify", id="id-plot", color="primary", size="sm")
-    ])
-
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.layout = html.Div([
     # https://dash.plotly.com/dash-core-components/markdown
@@ -42,7 +37,7 @@ app.layout = html.Div([
         Few points to Note:  
         1) Fewer samples makes it easier to get insights  
         2) Few existing datasets are generated to get quick insights about slack variables  
-        3) When we load existing data, input varaibles can change in UI components, please keep an eye on that  
+        3) When we load existing datasets, input varaibles can change in UI components, please keep an eye on that  
     '''),
     dbc.Container([
         dbc.Row([
