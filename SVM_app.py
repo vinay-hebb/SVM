@@ -15,6 +15,7 @@ from datetime import datetime
 from tabulate import tabulate
 from dash import dash_table
 import random
+import pickle
 def seed_everything(seed_value):
     os.environ['PYTHONHASHSEED']=str(seed_value)
     random.seed(seed_value)
@@ -24,6 +25,7 @@ def seed_everything(seed_value):
 # 1) Reduce marker size
 # 2) Add interesting datasets for users to explore, and their nitry gritties
 # 3) Write dual problem also
+# 4) Remove train_test_split, It is causing confusion in visualization if one repeatedly generates and classifies
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.layout = html.Div([
@@ -52,7 +54,8 @@ app.layout = html.Div([
             ], width='auto', className='mr-3'),
             
             dbc.Col([
-                dbc.Button("Generate & Classify", id="id-plot", color="primary", size="sm"),
+                dbc.Button("Generate", id="id-generate", color="primary", size="sm"),
+                dbc.Button("Classify", id="id-classify", color="primary", size="sm"),
             ], width='auto', className='mr-3'),
             
             dbc.Col([
@@ -62,12 +65,15 @@ app.layout = html.Div([
         ], align='center'),
     ], fluid=True, style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center'}),
     dbc.Container([
-        # dbc.Row([
-            dcc.Graph(id='decision-boundary-plot', mathjax=True), 
-            # plot_button,
-            html.Div(dash_table.DataTable(id="update-table", style_header={'backgroundColor': 'white', 'fontWeight': 'bold'}))
-        # ]),
-    ], fluid=True, style={'display': 'flex', 'align-items': 'center', 'justify-content': 'center'}),
+        dbc.Row([
+            dbc.Col([
+                dcc.Graph(id='decision-boundary-plot', mathjax=True)
+            ], width=6),  # width=6 means it will take 6/12 of the row width
+            dbc.Col([
+                html.Div(dash_table.DataTable(id="update-table", style_header={'backgroundColor': 'white', 'fontWeight': 'bold'}))
+            ], width=6)  # width=6 means it will take 6/12 of the row width
+        ], align='center'),
+    ], fluid=False, style={'display': 'flex', 'align-items': 'center', 'justify-content': 'left'}),
     dcc.Markdown('''
         ### Primal Optimization problem:        
                  
@@ -167,47 +173,16 @@ def generate_decision_boundary(X, y, W, b, eq=True):
                       title_font=dict(size=12), xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
     return fig
 
-@app.callback(
-    Output('decision-boundary-plot', 'figure'),
-    Output("my_state", "data"),
-    Output("update-table", "data"),
-    Output("num-samples", "value"),
-    Output("hyperparam-C", "value"),
-    Input("id-plot", "n_clicks"),
-    State("num-samples", "value"),
-    State("hyperparam-C", "value"),
-    State("my_state", "data"),
-    Input("load-data1", "n_clicks"),
-    Input("load-data2", "n_clicks"),
-)
-def process(n_clicks, n_samples, C, data, load_data1, load_data2):
-    import pickle
-    # state = np.random.get_state()
-    # print("Numpy module state:", state)
-    # with open('rng_state.pkl', 'wb') as f:
-    #     pickle.dump(state, f)
-    # with open('rng_state.pkl', 'rb') as f:
-    #     loaded_state = pickle.load(f)
-    # np.random.set_state(loaded_state)
-
-    print(f'{datetime.now()} : Process : {n_clicks=}, {n_samples=}, {C=}, {load_data1=}, {load_data2=}')
-    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
-    print(changed_id)
-    # import pdb; pdb.set_trace()
-    if 'load-data1' in changed_id:
-        with open('all_xi_ne_0.pkl', 'rb') as f:
-            X, y, n_samples, C = pickle.load(f)
-        seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
-    elif 'load-data2' in changed_id:
-        with open('some_xi_ne_0.pkl', 'rb') as f:
-            X, y, n_samples, C = pickle.load(f)
-        seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
+def classify(n_clicks, data, n_samples, C):
+    print(data, n_samples, C)
+    if n_samples != data[2]:
+        print('Regenerated data as num_samples was modified after Generate button and before classify button was clicked')
+        X, y, n_samples = create_all_classes_data(n_samples, my_data=False)
+        data = [X, y, n_samples, C]
     else:
-        X, y = create_all_classes_data(n_samples, my_data=False)
-    # print(X)
-    # with open('data2.pkl', 'wb') as f:
-    #     pickle.dump([X, y, n_samples, C], f)
-
+        [X, y, n_samples, C] = data
+    X, y = np.array(X), np.array(y)
+    seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20)
     # clf = SVC(C=0.1,kernel='linear')
     clf = SVC(C=C, kernel='linear')
@@ -237,7 +212,64 @@ def process(n_clicks, n_samples, C, data, load_data1, load_data2):
     fig = generate_decision_boundary(X_train, y_train, clf.coef_[0], clf.intercept_[0])
     # print()
     df = df.round(3).astype('str')      # https://stackoverflow.com/a/72322806/11471226
-    return fig, data, df.to_dict("records"), n_samples, C
+    return data, fig, df.to_dict("records"), n_samples, C
+    # return [], fig, df.to_dict("records"), n_samples, C
+
+@app.callback(
+    Output("my_state", "data"),
+    Output('decision-boundary-plot', 'figure'),
+    Output("update-table", "data"),
+    Output("num-samples", "value"),
+    Output("hyperparam-C", "value"),
+    Input("id-generate", "n_clicks"),
+    Input("id-classify", "n_clicks"),
+    Input("load-data1", "n_clicks"),
+    Input("load-data2", "n_clicks"),
+    State("my_state", "data"),
+    State("num-samples", "value"),
+    State("hyperparam-C", "value"),
+)
+def callback_entry(generate_n_clicks, classify_n_clicks, 
+                   load_data1_n_clicks, load_data2_n_clicks,
+                   data, n_samples, C):
+    print(f'{datetime.now()} : callback_entry : {generate_n_clicks=}, {classify_n_clicks=}, {load_data1_n_clicks=}, {load_data2_n_clicks=}, {n_samples=}, {C=}')
+    changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
+    if 'id-generate' in changed_id or 'load-data1' in changed_id or 'load-data2' in changed_id:
+        if 'id-generate' in changed_id:
+            X, y = create_all_classes_data(n_samples, my_data=False)
+        elif 'load-data1' in changed_id:
+            with open('all_xi_ne_0.pkl', 'rb') as f:
+                X, y, n_samples, C = pickle.load(f)
+        elif 'load-data2' in changed_id:
+            with open('some_xi_ne_0.pkl', 'rb') as f:
+                X, y, n_samples, C = pickle.load(f)
+        df = pd.DataFrame({'X1':X[:, 0], 'X2':X[:, 1], 'y':y})
+        fig = px.scatter(df, x="X1", y="X2", color="y")
+        fig.update_traces(marker=dict(size=12, line=dict(width=2, color='DarkSlateGrey')), selector=dict(mode='markers'))
+        fig.update_layout(xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
+        equal_aspect=True
+        if equal_aspect:
+            xx_arr, yy_arr = X[:, 0], X[:, 1]
+            x_min, x_max, y_min, y_max = get_plot_extremes(xx_arr, yy_arr)
+            pad_x, pad_y = 0.3, 0.3
+            fig_minx, fig_maxx, fig_miny, fig_maxy = x_min - abs(pad_x*x_min), x_max + abs(pad_x*x_max), y_min - abs(pad_y*y_min), y_max + abs(pad_y*y_max)
+            print(X)
+            print(fig_minx, fig_maxx, fig_miny, fig_maxy)
+            fig.update_xaxes(range=[fig_minx, fig_maxx])
+            fig.update_yaxes(range=[fig_miny, fig_maxy])
+        df_tmp_table = pd.DataFrame({'Support Vector: ' + r'$x_n$':[np.nan], 
+                'Margin': [np.nan],
+                r'$\\alpha_n$': [np.nan],
+                r'$\\xi_n': [np.nan],
+                })
+        print(df_tmp_table)
+        return [X, y, n_samples, C], fig, df_tmp_table.to_dict("records"), n_samples, C
+        # return [], fig, df.to_dict("records"), n_samples, C
+    elif 'id-classify' in changed_id:
+        return classify(classify_n_clicks, data, n_samples, C)
+    else:
+        return [], go.Figure(), pd.DataFrame().to_dict("records"), n_samples, C
+                   
 
 if __name__ == '__main__':
     if 'SPACE_ID' in os.environ:
