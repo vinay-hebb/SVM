@@ -24,12 +24,8 @@ def seed_everything(seed_value):
 seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
 
 # TO DO:
-# 1) Reduce marker size
 # 2) Add interesting datasets for users to explore, and their nitry gritties
 # 3) Write dual problem also
-# 4) What happens if user clicks classify first
-# 7) Add bubbles to support vectors
-# 9) To check for presence of vector on hyperplane, check margin
 
 split = False
 th_to_call_sample_on_hyp_plane = 0.001
@@ -110,7 +106,7 @@ app.layout = html.Div([
         2) Discuss about nonlinear SVM  
         3) Ability to move points to get better insights into optimization problem  
         4) Ability to generate data as per the inputs of user (amount of overlap, variance, ...etc)  
-        5) For extreme inputs, hyperplanes may not be visible (though they are plotted). This will be fixed soon.  
+        5) For extreme inputs, hyperplanes may not be visible (though they are plotted, they are just outside of 'meaningful' limits). This will be fixed soon.  
         ''', mathjax=True),
     dcc.Store(id='my_state', storage_type='memory'),
 ])
@@ -221,10 +217,23 @@ def classify(fig, data, n_samples, C):
     # print("\nConfusion Matrix: ")
     # print(confusion_matrix(y_test,y_pred))
     fig = generate_decision_boundary(fig, X_train, y_train, clf.coef_[0], clf.intercept_[0], fig_minx, fig_maxx)
+    sv = clf.support_vectors_
+    fig.add_trace(go.Scatter(x=sv[:, 0], y=sv[:, 1], mode='markers', name='Support Vectors',
+                            marker=dict(size=30, line=dict(width=3, color='red'),
+                            opacity=0.3,
+                            ), showlegend=False)
+                )
     # print()
     df = df.round(3).astype('str')      # https://stackoverflow.com/a/72322806/11471226
     msg = html.Div(dcc.Markdown('Classified Samples'), style={'color': 'green'})
     return data, fig, df.to_dict("records"), n_samples, C, msg
+
+def default_data(n_samples, C):
+    msg = html.Div(dcc.Markdown(''))
+    fig = go.Figure(data=[go.Scatter(x=[], y=[])])
+    fig.update_layout(xaxis=dict(range=[-2, 2]), yaxis=dict(range=[-2, 2]), width=600, height=600)
+    return SimpleNamespace().__dict__, fig, pd.DataFrame().to_dict("records"), n_samples, C, msg
+
 
 @app.callback(
     Output("my_state", "data"),
@@ -249,6 +258,9 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'id-generate' in changed_id or 'load-data1' in changed_id or 'load-data2' in changed_id:
         state_data = SimpleNamespace()
+        if n_samples > 10000:
+            msg = html.Div(dcc.Markdown('Lets not misuse free resource! ;)'), style={'color': 'red', 'font-size': '24px'})
+            return (*default_data(n_samples, C)[:-1], msg)
         if 'id-generate' in changed_id:
             X, y = create_all_classes_data(n_samples, my_data=False)
         elif 'load-data1' in changed_id:
@@ -281,15 +293,15 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
         return state_data.__dict__, fig, df_tmp_table.to_dict("records"), n_samples, C, msg
     elif 'id-classify' in changed_id:
         data = SimpleNamespace(**data)
+        if not data.__dict__:
+            msg = html.Div(dcc.Markdown('Please generate samples first and then classify'), style={'color': 'red', 'font-size': '24px'})
+            return (*default_data(n_samples, C)[:-1], msg)
         existing_fig = go.Figure(existing_fig)
-        existing_fig.data = [trace for trace in existing_fig.data if 'Hyperplane' not in trace.name]
+        existing_fig.data = [trace for trace in existing_fig.data if ('Hyperplane' not in trace.name) and ('Suppport Vectors' not in trace.name)]
         state, fig, df, n_samples, C, msg = classify(existing_fig, data, n_samples, C)
         return state.__dict__, fig, df, n_samples, C, msg
     else:
-        msg = html.Div(dcc.Markdown(''))
-        fig = go.Figure(data=[go.Scatter(x=[], y=[])])
-        fig.update_layout(xaxis=dict(range=[-2, 2]), yaxis=dict(range=[-2, 2]), width=600, height=600)
-        return SimpleNamespace().__dict__, fig, pd.DataFrame().to_dict("records"), n_samples, C, msg
+        return default_data(n_samples, C)
                    
 
 if __name__ == '__main__':
