@@ -16,6 +16,7 @@ from tabulate import tabulate
 from dash import dash_table
 import random
 import pickle
+from types import SimpleNamespace
 def seed_everything(seed_value):
     os.environ['PYTHONHASHSEED']=str(seed_value)
     random.seed(seed_value)
@@ -26,6 +27,11 @@ def seed_everything(seed_value):
 # 2) Add interesting datasets for users to explore, and their nitry gritties
 # 3) Write dual problem also
 # 4) Remove train_test_split, It is causing confusion in visualization if one repeatedly generates and classifies
+# 5) What happens if user clicks classify first
+
+split = False
+th_to_call_sample_on_hyp_plane = 0.001
+pad_x, pad_y = 0.3, 0.3
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.layout = html.Div([
@@ -107,6 +113,10 @@ app.layout = html.Div([
 ])
 server = app.server
 
+hyp_eqn = lambda clf, x: np.dot(clf.coef_[0], x) + clf.intercept_[0]
+Xi_eqn = lambda clf, x, y: 1-y*hyp_eqn(clf, x)
+Margin = lambda clf, x: np.abs(hyp_eqn(clf, x)/np.linalg.norm(clf.coef_[0]))  # Considering perpendicular distance
+
 def create_data(size, params):
     u, C = params
     return np.random.multivariate_normal(u, C, size=size)
@@ -140,16 +150,8 @@ def get_plot_extremes(xx_arr, yy_arr):
     # print(f'{x_min, x_max, y_min, y_max}, {mid_x:.2f}, {mid_y:.2f}, {req_plot_side_length}')
     return mid_x - req_plot_side_length/2, mid_x + req_plot_side_length/2, mid_y - req_plot_side_length/2, mid_y + req_plot_side_length/2
 
-def generate_decision_boundary(X, y, W, b, eq=True):
-    df = pd.DataFrame({'X1':X[:, 0], 'X2':X[:, 1], 'y':y})
-    fig = px.scatter(df, x="X1", y="X2", color="y")
+def generate_decision_boundary(fig, X, y, W, b, fig_minx, fig_maxx, eq=True):
     if eq:
-        xx_arr, yy_arr = X[:, 0], X[:, 1]
-        x_min, x_max, y_min, y_max = get_plot_extremes(xx_arr, yy_arr)
-        pad_x, pad_y = 0.3, 0.3
-        fig_minx, fig_maxx, fig_miny, fig_maxy = x_min - abs(pad_x*x_min), x_max + abs(pad_x*x_max), y_min - abs(pad_y*y_min), y_max + abs(pad_y*y_max)
-        fig.update_xaxes(range=[fig_minx, fig_maxx])
-        fig.update_yaxes(range=[fig_miny, fig_maxy])
         xx, y_hyp, y_hyp1, y_hyp2 = generate_hyperplanes(W, b, X, xx=np.linspace(fig_minx, fig_maxx))
     else:
         xx, y_hyp, y_hyp1, y_hyp2 = generate_hyperplanes(W, b, X)
@@ -173,47 +175,43 @@ def generate_decision_boundary(X, y, W, b, eq=True):
                       title_font=dict(size=12), xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
     return fig
 
-def classify(n_clicks, data, n_samples, C):
+def classify(fig, data, n_samples, C):
     print(data, n_samples, C)
-    if n_samples != data[2]:
+    if n_samples != data.n_samples:
         print('Regenerated data as num_samples was modified after Generate button and before classify button was clicked')
         X, y, n_samples = create_all_classes_data(n_samples, my_data=False)
-        data = [X, y, n_samples, C]
+        data = SimpleNamespace(X=X, y=y, n_samples=n_samples, C=C)
     else:
-        [X, y, n_samples, C] = data
+        X, y, n_samples, C, fig_minx, fig_maxx, fig_miny, fig_maxy = data.X, data.y, data.n_samples, data.C, data.fig_minx, data.fig_maxx, data.fig_miny, data.fig_maxy
     X, y = np.array(X), np.array(y)
     seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20)
-    # clf = SVC(C=0.1,kernel='linear')
+    if split == True:
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20)
+    else:
+        X_train, y_train = X, y
     clf = SVC(C=C, kernel='linear')
     clf.fit(X_train, y_train)
-    y_pred = clf.predict(X_test)
-    a, b = clf.coef_[0]
-    c = clf.intercept_[0]
+    if split == True:
+        y_pred = clf.predict(X_test)
     # print(f'{a},{b},{c}')
-    hyp_eqn = lambda x: np.dot(clf.coef_[0], x) + clf.intercept_[0]
-    Xi_eqn = lambda x, y: 1-y*hyp_eqn(x)
-    Margin = lambda x: np.abs(hyp_eqn(x)/np.linalg.norm(clf.coef_[0]))  # Considering perpendicular distance
     textbook_y = y_train
     textbook_y[textbook_y==0] = -1  # Using format as in textbook
     df = pd.DataFrame({'Support Vector: ' + r'$x_n$':[f"({x[0]:+.2f}, {x[1]:+.2f})" for x in clf.support_vectors_], 
-                  'Margin': [Margin(x) for x in clf.support_vectors_],
+                  'Margin': [Margin(clf, x) for x in clf.support_vectors_],
                   r'$\\alpha_n$': clf.dual_coef_[0],
-                  r'$\\xi_n': [Xi_eqn(x, textbook_y[idx]) for x, idx in zip(clf.support_vectors_, clf.support_)],
+                  r'$\\xi_n': [Xi_eqn(clf, x, textbook_y[idx]) for x, idx in zip(clf.support_vectors_, clf.support_)],
                   })
-    df['On support hyperplane?'] = 0
-    df['On support hyperplane?'] = df[r'$\\xi_n'] < 0.01
+    df['On support hyperplane?'] = df[r'$\\xi_n'] < th_to_call_sample_on_hyp_plane
     # print(f'Separting Hyperplane equation       : {a:.2f}x1 {b:+.2f}x2 {c:+.2f} = 0')
     # print()
     # print(f"Final Parameters after optimization : ")
     # print(tabulate(df, headers='keys', tablefmt='psql'))
     # print("\nConfusion Matrix: ")
     # print(confusion_matrix(y_test,y_pred))
-    fig = generate_decision_boundary(X_train, y_train, clf.coef_[0], clf.intercept_[0])
+    fig = generate_decision_boundary(fig, X_train, y_train, clf.coef_[0], clf.intercept_[0], fig_minx, fig_maxx)
     # print()
     df = df.round(3).astype('str')      # https://stackoverflow.com/a/72322806/11471226
     return data, fig, df.to_dict("records"), n_samples, C
-    # return [], fig, df.to_dict("records"), n_samples, C
 
 @app.callback(
     Output("my_state", "data"),
@@ -228,13 +226,15 @@ def classify(n_clicks, data, n_samples, C):
     State("my_state", "data"),
     State("num-samples", "value"),
     State("hyperparam-C", "value"),
+    State('decision-boundary-plot', 'figure'),
 )
 def callback_entry(generate_n_clicks, classify_n_clicks, 
                    load_data1_n_clicks, load_data2_n_clicks,
-                   data, n_samples, C):
+                   data, n_samples, C, existing_fig):
     print(f'{datetime.now()} : callback_entry : {generate_n_clicks=}, {classify_n_clicks=}, {load_data1_n_clicks=}, {load_data2_n_clicks=}, {n_samples=}, {C=}')
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'id-generate' in changed_id or 'load-data1' in changed_id or 'load-data2' in changed_id:
+        state_data = SimpleNamespace()
         if 'id-generate' in changed_id:
             X, y = create_all_classes_data(n_samples, my_data=False)
         elif 'load-data1' in changed_id:
@@ -243,32 +243,36 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
         elif 'load-data2' in changed_id:
             with open('some_xi_ne_0.pkl', 'rb') as f:
                 X, y, n_samples, C = pickle.load(f)
+        state_data = SimpleNamespace(X=X, y=y, n_samples=n_samples, C=C)
         df = pd.DataFrame({'X1':X[:, 0], 'X2':X[:, 1], 'y':y})
         fig = px.scatter(df, x="X1", y="X2", color="y")
         fig.update_traces(marker=dict(size=12, line=dict(width=2, color='DarkSlateGrey')), selector=dict(mode='markers'))
         fig.update_layout(xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
         equal_aspect=True
         if equal_aspect:
-            xx_arr, yy_arr = X[:, 0], X[:, 1]
-            x_min, x_max, y_min, y_max = get_plot_extremes(xx_arr, yy_arr)
-            pad_x, pad_y = 0.3, 0.3
+            x_min, x_max, y_min, y_max = get_plot_extremes(X[:, 0], X[:, 1])
             fig_minx, fig_maxx, fig_miny, fig_maxy = x_min - abs(pad_x*x_min), x_max + abs(pad_x*x_max), y_min - abs(pad_y*y_min), y_max + abs(pad_y*y_max)
-            print(X)
-            print(fig_minx, fig_maxx, fig_miny, fig_maxy)
+            # print(X)
+            # print(fig_minx, fig_maxx, fig_miny, fig_maxy)
             fig.update_xaxes(range=[fig_minx, fig_maxx])
             fig.update_yaxes(range=[fig_miny, fig_maxy])
+            state_data.__dict__.update(fig_minx=fig_minx, fig_maxx=fig_maxx, fig_miny=fig_miny, fig_maxy=fig_maxy)
+        # else: TO DO: to be handled
         df_tmp_table = pd.DataFrame({'Support Vector: ' + r'$x_n$':[np.nan], 
                 'Margin': [np.nan],
                 r'$\\alpha_n$': [np.nan],
                 r'$\\xi_n': [np.nan],
                 })
-        print(df_tmp_table)
-        return [X, y, n_samples, C], fig, df_tmp_table.to_dict("records"), n_samples, C
+        # print(df_tmp_table)
+        return state_data.__dict__, fig, df_tmp_table.to_dict("records"), n_samples, C
         # return [], fig, df.to_dict("records"), n_samples, C
     elif 'id-classify' in changed_id:
-        return classify(classify_n_clicks, data, n_samples, C)
+        data = SimpleNamespace(**data)
+        existing_fig = go.Figure(existing_fig)
+        state, fig, df, n_samples, C = classify(existing_fig, data, n_samples, C)
+        return state.__dict__, fig, df, n_samples, C
     else:
-        return [], go.Figure(), pd.DataFrame().to_dict("records"), n_samples, C
+        return SimpleNamespace().__dict__, go.Figure(), pd.DataFrame().to_dict("records"), n_samples, C
                    
 
 if __name__ == '__main__':
