@@ -219,9 +219,7 @@ def classify(fig, data, n_samples, C):
     fig = generate_decision_boundary(fig, X_train, y_train, clf.coef_[0], clf.intercept_[0], fig_minx, fig_maxx)
     sv = clf.support_vectors_
     fig.add_trace(go.Scatter(x=sv[:, 0], y=sv[:, 1], mode='markers', name='Support Vectors',
-                            marker=dict(size=30, line=dict(width=3, color='red'),
-                            opacity=0.3,
-                            ), showlegend=False)
+                            marker=dict(size=30, line=dict(width=3, color='red'),opacity=0.3,color='rgba(0,0,0,0)'), showlegend=False)
                 )
     # print()
     df = df.round(3).astype('str')      # https://stackoverflow.com/a/72322806/11471226
