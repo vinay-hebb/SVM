@@ -28,7 +28,6 @@ seed_everything(1)              # To keep the behavior cosnsistent when data is 
 # 2) Add interesting datasets for users to explore, and their nitry gritties
 # 3) Write dual problem also
 # 4) What happens if user clicks classify first
-# 5) Make default initial fig
 # 7) Add bubbles to support vectors
 # 9) To check for presence of vector on hyperplane, check margin
 
@@ -288,7 +287,9 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
         return state.__dict__, fig, df, n_samples, C, msg
     else:
         msg = html.Div(dcc.Markdown(''))
-        return SimpleNamespace().__dict__, go.Figure(), pd.DataFrame().to_dict("records"), n_samples, C, msg
+        fig = go.Figure(data=[go.Scatter(x=[], y=[])])
+        fig.update_layout(xaxis=dict(range=[-2, 2]), yaxis=dict(range=[-2, 2]), width=600, height=600)
+        return SimpleNamespace().__dict__, fig, pd.DataFrame().to_dict("records"), n_samples, C, msg
                    
 
 if __name__ == '__main__':
