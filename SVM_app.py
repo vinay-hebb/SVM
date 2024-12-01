@@ -21,13 +21,16 @@ def seed_everything(seed_value):
     os.environ['PYTHONHASHSEED']=str(seed_value)
     random.seed(seed_value)
     np.random.seed(seed_value)
+seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
 
 # TO DO:
 # 1) Reduce marker size
 # 2) Add interesting datasets for users to explore, and their nitry gritties
 # 3) Write dual problem also
-# 4) Remove train_test_split, It is causing confusion in visualization if one repeatedly generates and classifies
-# 5) What happens if user clicks classify first
+# 4) What happens if user clicks classify first
+# 5) Make default initial fig
+# 7) Add bubbles to support vectors
+# 9) To check for presence of vector on hyperplane, check margin
 
 split = False
 th_to_call_sample_on_hyp_plane = 0.001
@@ -77,7 +80,8 @@ app.layout = html.Div([
             ], width=6),  # width=6 means it will take 6/12 of the row width
             dbc.Col([
                 html.Div(dash_table.DataTable(id="update-table", style_header={'backgroundColor': 'white', 'fontWeight': 'bold'}))
-            ], width=6)  # width=6 means it will take 6/12 of the row width
+            ], width=6),  # width=6 means it will take 6/12 of the row width
+            html.Div(id='error-message'),
         ], align='center'),
     ], fluid=False, style={'display': 'flex', 'align-items': 'center', 'justify-content': 'left'}),
     dcc.Markdown('''
@@ -156,9 +160,9 @@ def generate_decision_boundary(fig, X, y, W, b, fig_minx, fig_maxx, eq=True):
     else:
         xx, y_hyp, y_hyp1, y_hyp2 = generate_hyperplanes(W, b, X)
 
-    trace_hyperplane = go.Scatter(x=xx,y=y_hyp,mode='lines',line=dict(color='green', width=3),name='Hyperplane', showlegend=False)
-    trace_hyperplane1 = go.Scatter(x=xx,y=y_hyp1,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Hyperplane1', showlegend=False)
-    trace_hyperplane2 = go.Scatter(x=xx,y=y_hyp2,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Hyperplane2', showlegend=False)
+    trace_hyperplane = go.Scatter(x=xx,y=y_hyp,mode='lines',line=dict(color='green', width=3),name='Separting Hyperplane', showlegend=False)
+    trace_hyperplane1 = go.Scatter(x=xx,y=y_hyp1,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Supporting Hyperplane1', showlegend=False)
+    trace_hyperplane2 = go.Scatter(x=xx,y=y_hyp2,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Supporting Hyperplane2', showlegend=False)
     fig.add_trace(trace_hyperplane)
     fig.add_trace(trace_hyperplane1)
     fig.add_trace(trace_hyperplane2)
@@ -176,15 +180,24 @@ def generate_decision_boundary(fig, X, y, W, b, fig_minx, fig_maxx, eq=True):
     return fig
 
 def classify(fig, data, n_samples, C):
-    print(data, n_samples, C)
+    # print(data, n_samples, C)
+    if C != data.C:
+        data.C = C
     if n_samples != data.n_samples:
-        print('Regenerated data as num_samples was modified after Generate button and before classify button was clicked')
-        X, y, n_samples = create_all_classes_data(n_samples, my_data=False)
-        data = SimpleNamespace(X=X, y=y, n_samples=n_samples, C=C)
+        # print('Regenerated data as num_samples was modified after Generate button and before classify button was clicked')
+        # data.n_samples = n_samples
+        # X, y = create_all_classes_data(n_samples, my_data=False)
+        # data = SimpleNamespace(X=X, y=y, n_samples=n_samples, C=C)
+        df_tmp_table = pd.DataFrame({'Support Vector: ' + r'$x_n$':[np.nan], 
+                'Margin': [np.nan],
+                r'$\\alpha_n$': [np.nan],
+                r'$\\xi_n': [np.nan],
+                })
+        msg = html.Div(dcc.Markdown('*Number of samples was modified after Generating data. Please regenerate*'), style={'color': 'red', 'font-size': '24px'})
+        return data, fig, df_tmp_table.to_dict("records"), n_samples, C, msg
     else:
         X, y, n_samples, C, fig_minx, fig_maxx, fig_miny, fig_maxy = data.X, data.y, data.n_samples, data.C, data.fig_minx, data.fig_maxx, data.fig_miny, data.fig_maxy
     X, y = np.array(X), np.array(y)
-    seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
     if split == True:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20)
     else:
@@ -211,7 +224,8 @@ def classify(fig, data, n_samples, C):
     fig = generate_decision_boundary(fig, X_train, y_train, clf.coef_[0], clf.intercept_[0], fig_minx, fig_maxx)
     # print()
     df = df.round(3).astype('str')      # https://stackoverflow.com/a/72322806/11471226
-    return data, fig, df.to_dict("records"), n_samples, C
+    msg = html.Div(dcc.Markdown('Classified Samples'), style={'color': 'green'})
+    return data, fig, df.to_dict("records"), n_samples, C, msg
 
 @app.callback(
     Output("my_state", "data"),
@@ -219,6 +233,7 @@ def classify(fig, data, n_samples, C):
     Output("update-table", "data"),
     Output("num-samples", "value"),
     Output("hyperparam-C", "value"),
+    Output("error-message", "children"),
     Input("id-generate", "n_clicks"),
     Input("id-classify", "n_clicks"),
     Input("load-data1", "n_clicks"),
@@ -263,16 +278,17 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
                 r'$\\alpha_n$': [np.nan],
                 r'$\\xi_n': [np.nan],
                 })
-        # print(df_tmp_table)
-        return state_data.__dict__, fig, df_tmp_table.to_dict("records"), n_samples, C
-        # return [], fig, df.to_dict("records"), n_samples, C
+        msg = html.Div(dcc.Markdown('Generated Samples'), style={'color': 'green'})
+        return state_data.__dict__, fig, df_tmp_table.to_dict("records"), n_samples, C, msg
     elif 'id-classify' in changed_id:
         data = SimpleNamespace(**data)
         existing_fig = go.Figure(existing_fig)
-        state, fig, df, n_samples, C = classify(existing_fig, data, n_samples, C)
-        return state.__dict__, fig, df, n_samples, C
+        existing_fig.data = [trace for trace in existing_fig.data if 'Hyperplane' not in trace.name]
+        state, fig, df, n_samples, C, msg = classify(existing_fig, data, n_samples, C)
+        return state.__dict__, fig, df, n_samples, C, msg
     else:
-        return SimpleNamespace().__dict__, go.Figure(), pd.DataFrame().to_dict("records"), n_samples, C
+        msg = html.Div(dcc.Markdown(''))
+        return SimpleNamespace().__dict__, go.Figure(), pd.DataFrame().to_dict("records"), n_samples, C, msg
                    
 
 if __name__ == '__main__':
