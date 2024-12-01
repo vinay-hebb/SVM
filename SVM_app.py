@@ -277,7 +277,8 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
         equal_aspect=True
         if equal_aspect:
             x_min, x_max, y_min, y_max = get_plot_extremes(X[:, 0], X[:, 1])
-            fig_minx, fig_maxx, fig_miny, fig_maxy = x_min - abs(pad_x*x_min), x_max + abs(pad_x*x_max), y_min - abs(pad_y*y_min), y_max + abs(pad_y*y_max)
+            dist_x, dist_y = x_max - x_min, y_max - y_min
+            fig_minx, fig_maxx, fig_miny, fig_maxy = x_min - abs(pad_x*dist_x), x_max + abs(pad_x*dist_x), y_min - abs(pad_y*dist_y), y_max + abs(pad_y*dist_y)
             # print(X)
             # print(fig_minx, fig_maxx, fig_miny, fig_maxy)
             fig.update_xaxes(range=[fig_minx, fig_maxx])
