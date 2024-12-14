@@ -192,13 +192,16 @@ def classify(fig, data, n_samples, C):
         return data, fig, df_tmp_table.to_dict("records"), n_samples, C, msg
     else:
         X, y, n_samples, C, fig_minx, fig_maxx, fig_miny, fig_maxy = data.X, data.y, data.n_samples, data.C, data.fig_minx, data.fig_maxx, data.fig_miny, data.fig_maxy
+    
     X, y = np.array(X), np.array(y)
     if split == True:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.20)
     else:
         X_train, y_train = X, y
+        
     clf = SVC(C=C, kernel='linear')
     clf.fit(X_train, y_train)
+    
     if split == True:
         y_pred = clf.predict(X_test)
     # print(f'{a},{b},{c}')
@@ -252,7 +255,7 @@ def default_data(n_samples, C):
 def callback_entry(generate_n_clicks, classify_n_clicks, 
                    load_data1_n_clicks, load_data2_n_clicks,
                    data, n_samples, C, existing_fig):
-    print(f'{datetime.now()} : callback_entry : {generate_n_clicks=}, {classify_n_clicks=}, {load_data1_n_clicks=}, {load_data2_n_clicks=}, {n_samples=}, {C=}')
+    print(f'{datetime.now()} : Starting callback_entry : {generate_n_clicks=}, {classify_n_clicks=}, {load_data1_n_clicks=}, {load_data2_n_clicks=}, {n_samples=}, {C=}')
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'id-generate' in changed_id or 'load-data1' in changed_id or 'load-data2' in changed_id:
         state_data = SimpleNamespace()
@@ -289,6 +292,7 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
                 r'$\\xi_n': [np.nan],
                 })
         msg = html.Div(dcc.Markdown('Generated Samples'), style={'color': 'green'})
+        print(f'{datetime.now()} : Ending callback_entry')
         return state_data.__dict__, fig, df_tmp_table.to_dict("records"), n_samples, C, msg
     elif 'id-classify' in changed_id:
         data = SimpleNamespace(**data)
@@ -298,8 +302,10 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
         existing_fig = go.Figure(existing_fig)
         existing_fig.data = [trace for trace in existing_fig.data if ('Hyperplane' not in trace.name) and ('Suppport Vectors' not in trace.name)]
         state, fig, df, n_samples, C, msg = classify(existing_fig, data, n_samples, C)
+        print(f'{datetime.now()} : Ending callback_entry')
         return state.__dict__, fig, df, n_samples, C, msg
     else:
+        print(f'{datetime.now()} : Ending callback_entry')
         return default_data(n_samples, C)
                    
 
