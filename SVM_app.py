@@ -176,6 +176,7 @@ def generate_decision_boundary(fig, X, y, W, b, fig_minx, fig_maxx, eq=True):
 
 def classify(fig, data, n_samples, C):
     # print(data, n_samples, C)
+    perpendicular_projections = True
     if C != data.C:
         data.C = C
     if n_samples != data.n_samples:
@@ -220,12 +221,28 @@ def classify(fig, data, n_samples, C):
     # print("\nConfusion Matrix: ")
     # print(confusion_matrix(y_test,y_pred))
     fig = generate_decision_boundary(fig, X_train, y_train, clf.coef_[0], clf.intercept_[0], fig_minx, fig_maxx)
-    sv = clf.support_vectors_
-    fig.add_trace(go.Scatter(x=sv[:, 0], y=sv[:, 1], mode='markers', name='Support Vectors',
-                            marker=dict(size=30, line=dict(width=3, color='red'),opacity=0.3,color='rgba(0,0,0,0)'), showlegend=False)
-                )
-    # print()
-    df = df.round(3).astype('str')      # https://stackoverflow.com/a/72322806/11471226
+    
+    if perpendicular_projections:   # Draw perpendicular lines showing margin distance
+        sv = clf.support_vectors_
+        w = clf.coef_[0]
+        b = clf.intercept_[0]
+        w_norm = np.sqrt(np.sum(w**2))
+        unit_normal = w / w_norm
+        
+        for point in sv:
+            dist = (np.dot(w, point) + b) / w_norm
+            proj_point = point - dist * unit_normal
+            fig.add_trace(go.Scatter(x=[point[0], proj_point[0]], 
+                                    y=[point[1], proj_point[1]],
+                                    mode='lines',
+                                    line=dict(color='red', width=1, dash='dot'),
+                                    showlegend=False))
+
+        fig.add_trace(go.Scatter(x=sv[:, 0], y=sv[:, 1], mode='markers', name='Support Vectors',
+                                marker=dict(size=30, line=dict(width=3, color='red'),opacity=0.3,color='rgba(0,0,0,0)'), 
+                                showlegend=False))
+
+    df = df.round(3).astype('str')
     msg = html.Div(dcc.Markdown('Classified Samples'), style={'color': 'green'})
     return data, fig, df.to_dict("records"), n_samples, C, msg
 
