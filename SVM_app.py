@@ -183,25 +183,25 @@ def generate_decision_boundary(fig, X, y, W, b, fig_minx, fig_maxx, fig_miny, fi
                       title_font=dict(size=12), xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
     return fig
 
-def classify(fig, data, n_samples, C):
-    # print(data, n_samples, C)
+def classify(state, fig, n_samples, C):
+    # print(state, n_samples, C)
     perpendicular_projections = True
-    if C != data.C:
-        data.C = C
-    if n_samples != data.n_samples:
-        # print('Regenerated data as num_samples was modified after Generate button and before classify button was clicked')
-        # data.n_samples = n_samples
+    if C != state.C:
+        state.C = C
+    if n_samples != state.n_samples:
+        # print('Regenerated state as num_samples was modified after Generate button and before classify button was clicked')
+        # state.n_samples = n_samples
         # X, y = create_all_classes_data(n_samples, my_data=False)
-        # data = SimpleNamespace(X=X, y=y, n_samples=n_samples, C=C)
+        # state = SimpleNamespace(X=X, y=y, n_samples=n_samples, C=C)
         df_tmp_table = pd.DataFrame({'Support Vector: ' + r'$x_n$':[np.nan], 
                 'Margin': [np.nan],
                 r'$\\alpha_n$': [np.nan],
                 r'$\\xi_n': [np.nan],
                 })
-        msg = html.Div(dcc.Markdown('*Number of samples was modified after Generating data. Please regenerate*'), style={'color': 'red', 'font-size': '24px'})
-        return data, fig, df_tmp_table.to_dict("records"), n_samples, C, msg
+        msg = html.Div(dcc.Markdown('*Number of samples was modified after Generating state. Please regenerate*'), style={'color': 'red', 'font-size': '24px'})
+        return state, fig, df_tmp_table.to_dict("records"), n_samples, C, msg
     else:
-        X, y, n_samples, C, fig_minx, fig_maxx, fig_miny, fig_maxy = data.X, data.y, data.n_samples, data.C, data.fig_minx, data.fig_maxx, data.fig_miny, data.fig_maxy
+        X, y, n_samples, C, fig_minx, fig_maxx, fig_miny, fig_maxy = state.X, state.y, state.n_samples, state.C, state.fig_minx, state.fig_maxx, state.fig_miny, state.fig_maxy
     
     X, y = np.array(X), np.array(y)
     if split == True:
@@ -264,13 +264,13 @@ def classify(fig, data, n_samples, C):
 
     df = df.round(3).astype('str')
     msg = html.Div(dcc.Markdown('Classified Samples'), style={'color': 'green'})
-    return data, fig, df.to_dict("records"), n_samples, C, msg
+    return state, fig, df.to_dict("records"), n_samples, C, msg
 
 def default_data(n_samples, C):
+    state = SimpleNamespace(fig_minx=-2, fig_maxx=2, fig_miny=-2, fig_maxy=2)
     msg = html.Div(dcc.Markdown(''))
     fig = go.Figure(data=[go.Scatter(x=[], y=[])])
-    fig.update_layout(xaxis=dict(range=[-2, 2]), yaxis=dict(range=[-2, 2]), width=600, height=600)
-    return SimpleNamespace().__dict__, fig, pd.DataFrame().to_dict("records"), n_samples, C, msg
+    return state, fig, pd.DataFrame().to_dict("records"), n_samples, C, msg
 
 
 @app.callback(
@@ -284,14 +284,15 @@ def default_data(n_samples, C):
     Input("id-classify", "n_clicks"),
     Input("load-data1", "n_clicks"),
     Input("load-data2", "n_clicks"),
+    # State('graph', 'relayoutData'),
     State("my_state", "data"),
     State("num-samples", "value"),
     State("hyperparam-C", "value"),
     State('decision-boundary-plot', 'figure'),
 )
 def callback_entry(generate_n_clicks, classify_n_clicks, 
-                   load_data1_n_clicks, load_data2_n_clicks,
-                   data, n_samples, C, existing_fig):
+                   load_data1_n_clicks, load_data2_n_clicks, # relayoutData,
+                   state, n_samples, C, existing_fig):
     print(f'{datetime.now()} : Starting callback_entry : {generate_n_clicks=}, {classify_n_clicks=}, {load_data1_n_clicks=}, {load_data2_n_clicks=}, {n_samples=}, {C=}')
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'id-generate' in changed_id or 'load-data1' in changed_id or 'load-data2' in changed_id:
@@ -327,37 +328,40 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
                 r'$\\xi_n': [np.nan],
                 })
         msg = html.Div(dcc.Markdown('Generated Samples'), style={'color': 'green'})
-        params = state.__dict__, fig, df_tmp_table.to_dict("records"), n_samples, C, msg
+        params = state, fig, df_tmp_table.to_dict("records"), n_samples, C, msg
     elif 'id-classify' in changed_id:
-        data = SimpleNamespace(**data)
-        if not data.__dict__:
+        state = SimpleNamespace(**state)
+        if not state.__dict__:
             msg = html.Div(dcc.Markdown('Please generate samples first and then classify'), style={'color': 'red', 'font-size': '24px'})
             params = (*default_data(n_samples, C)[:-1], msg)
         else:
             existing_fig = go.Figure(existing_fig)
-            existing_fig.data = [trace for trace in existing_fig.data 
+            existing_fig.data = [trace for trace in existing_fig.data
                                 if ('Hyperplane' not in trace.name) and 
                                 ('Suppport Vectors' not in trace.name) and
                                 ('SV projections' not in trace.name)
                                 ]
-            state, fig, df, n_samples, C, msg = classify(existing_fig, data, n_samples, C)
-            params = state.__dict__, fig, df, n_samples, C, msg
+            state, fig, df, n_samples, C, msg = classify(state, existing_fig, n_samples, C)
+            params = state, fig, df, n_samples, C, msg
+    # elif len(changed_id.split('.')) > 1 and changed_id.split('.')[0] == 'graph':
+    #     params = state, existing_fig, dash.no_update, dash.no_update, dash.no_update, dash.no_update
     else:
-        fig_minx, fig_maxx, fig_miny, fig_maxy = -2, 2, -2, 2
         params = default_data(n_samples, C)
     params[1].update_layout(
         xaxis=dict(
             scaleanchor="y",  # Link x-axis to y-axis for equal aspect ratio
-            constrain='domain'  # Prevents the axis from being stretched
+            constrain='domain',  # Prevents the axis from being stretched
+            range=[params[0].fig_minx, params[0].fig_maxx]
         ),
         yaxis=dict(
             scaleanchor="x",  # Link y-axis to x-axis for equal aspect ratio
-            constrain='domain'  # Prevents the axis from being stretched
+            constrain='domain',  # Prevents the axis from being stretched
+            range=[params[0].fig_miny, params[0].fig_maxy]
         ),
+        width=600, height=600,
     )
-    params[1].update_xaxes(range=[state.fig_minx, state.fig_maxx])
-    params[1].update_yaxes(range=[state.fig_miny, state.fig_maxy])
     print(f'{datetime.now()} : Ending callback_entry')
+    params = (params[0].__dict__, *params[1:])
     return params
                    
 
