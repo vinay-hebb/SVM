@@ -149,15 +149,24 @@ def get_plot_extremes(xx_arr, yy_arr):
     # print(f'{x_min, x_max, y_min, y_max}, {mid_x:.2f}, {mid_y:.2f}, {req_plot_side_length}')
     return mid_x - req_plot_side_length/2, mid_x + req_plot_side_length/2, mid_y - req_plot_side_length/2, mid_y + req_plot_side_length/2
 
-def generate_decision_boundary(fig, X, y, W, b, fig_minx, fig_maxx, eq=True):
+def generate_decision_boundary(fig, X, y, W, b, fig_minx, fig_maxx, fig_miny, fig_maxy, eq=True):
     if eq:
-        xx, y_hyp, y_hyp1, y_hyp2 = generate_hyperplanes(W, b, X, xx=np.linspace(fig_minx, fig_maxx))
+        xx = np.linspace(fig_minx, fig_maxx)
+        xx, y_hyp, y_hyp1, y_hyp2 = generate_hyperplanes(W, b, X, xx=xx)
+        mask_hyp = (y_hyp >= fig_miny) & (y_hyp <= fig_maxy)
+        mask_hyp1 = (y_hyp1 >= fig_miny) & (y_hyp1 <= fig_maxy) 
+        mask_hyp2 = (y_hyp2 >= fig_miny) & (y_hyp2 <= fig_maxy)
+        
+        x, y_hyp = xx[mask_hyp], y_hyp[mask_hyp]
+        x1, y_hyp1 = xx[mask_hyp1], y_hyp1[mask_hyp1]
+        x2, y_hyp2 = xx[mask_hyp2], y_hyp2[mask_hyp2]
     else:
+        assert False, "Not implemented"
         xx, y_hyp, y_hyp1, y_hyp2 = generate_hyperplanes(W, b, X)
 
-    trace_hyperplane = go.Scatter(x=xx,y=y_hyp,mode='lines',line=dict(color='green', width=3),name='Separting Hyperplane', showlegend=False)
-    trace_hyperplane1 = go.Scatter(x=xx,y=y_hyp1,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Supporting Hyperplane1', showlegend=False)
-    trace_hyperplane2 = go.Scatter(x=xx,y=y_hyp2,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Supporting Hyperplane2', showlegend=False)
+    trace_hyperplane = go.Scatter(x=x,y=y_hyp,mode='lines',line=dict(color='green', width=3),name='Separting Hyperplane', showlegend=False)
+    trace_hyperplane1 = go.Scatter(x=x1,y=y_hyp1,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Supporting Hyperplane1', showlegend=False)
+    trace_hyperplane2 = go.Scatter(x=x2,y=y_hyp2,mode='lines',line=dict(color='green', width=3, dash='dash'),name='Supporting Hyperplane2', showlegend=False)
     fig.add_trace(trace_hyperplane)
     fig.add_trace(trace_hyperplane1)
     fig.add_trace(trace_hyperplane2)
@@ -220,22 +229,33 @@ def classify(fig, data, n_samples, C):
     # print(tabulate(df, headers='keys', tablefmt='psql'))
     # print("\nConfusion Matrix: ")
     # print(confusion_matrix(y_test,y_pred))
-    fig = generate_decision_boundary(fig, X_train, y_train, clf.coef_[0], clf.intercept_[0], fig_minx, fig_maxx)
+    fig = generate_decision_boundary(fig, X_train, y_train, clf.coef_[0], clf.intercept_[0], fig_minx, fig_maxx, fig_miny, fig_maxy)
     
     if perpendicular_projections:   # Draw perpendicular lines showing margin distance
         sv = clf.support_vectors_
+        sv_indices = clf.support_
         w = clf.coef_[0]
         b = clf.intercept_[0]
         w_norm = np.sqrt(np.sum(w**2))
         unit_normal = w / w_norm
         
-        for point in sv:
-            dist = (np.dot(w, point) + b) / w_norm
-            proj_point = point - dist * unit_normal
+        # Get labels of support vectors to determine which hyperplane they correspond to
+        sv_y = y_train[sv_indices]
+        
+        for point, label in zip(sv, sv_y):
+            print(f'{point}, {label}')
+            # For positive class (label=1), project to w·x + b = 1
+            # For negative class (label=0 or -1), project to w·x + b = -1
+            target_offset = 1 if label == 1 else -1
+            
+            # Calculate projection point on corresponding hyperplane
+            proj_point = point - (np.dot(w, point) + b - target_offset) / w_norm**2 * w
+            
             fig.add_trace(go.Scatter(x=[point[0], proj_point[0]], 
                                     y=[point[1], proj_point[1]],
                                     mode='lines',
                                     line=dict(color='red', width=1, dash='dot'),
+                                    name='SV projections',
                                     showlegend=False))
 
         fig.add_trace(go.Scatter(x=sv[:, 0], y=sv[:, 1], mode='markers', name='Support Vectors',
@@ -275,7 +295,7 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
     print(f'{datetime.now()} : Starting callback_entry : {generate_n_clicks=}, {classify_n_clicks=}, {load_data1_n_clicks=}, {load_data2_n_clicks=}, {n_samples=}, {C=}')
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'id-generate' in changed_id or 'load-data1' in changed_id or 'load-data2' in changed_id:
-        state_data = SimpleNamespace()
+        state = SimpleNamespace()
         if n_samples > 10000:
             msg = html.Div(dcc.Markdown('Lets not misuse free resource! ;)'), style={'color': 'red', 'font-size': '24px'})
             return (*default_data(n_samples, C)[:-1], msg)
@@ -287,7 +307,7 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
         elif 'load-data2' in changed_id:
             with open('some_xi_ne_0.pkl', 'rb') as f:
                 X, y, n_samples, C = pickle.load(f)
-        state_data = SimpleNamespace(X=X, y=y, n_samples=n_samples, C=C)
+        state = SimpleNamespace(X=X, y=y, n_samples=n_samples, C=C)
         df = pd.DataFrame({'X1':X[:, 0], 'X2':X[:, 1], 'y':y})
         fig = px.scatter(df, x="X1", y="X2", color="y")
         fig.update_traces(marker=dict(size=12, line=dict(width=2, color='DarkSlateGrey')), selector=dict(mode='markers'))
@@ -299,9 +319,7 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
             fig_minx, fig_maxx, fig_miny, fig_maxy = x_min - abs(pad_x*dist_x), x_max + abs(pad_x*dist_x), y_min - abs(pad_y*dist_y), y_max + abs(pad_y*dist_y)
             # print(X)
             # print(fig_minx, fig_maxx, fig_miny, fig_maxy)
-            fig.update_xaxes(range=[fig_minx, fig_maxx])
-            fig.update_yaxes(range=[fig_miny, fig_maxy])
-            state_data.__dict__.update(fig_minx=fig_minx, fig_maxx=fig_maxx, fig_miny=fig_miny, fig_maxy=fig_maxy)
+            state.__dict__.update(fig_minx=fig_minx, fig_maxx=fig_maxx, fig_miny=fig_miny, fig_maxy=fig_maxy)
         # else: TO DO: to be handled
         df_tmp_table = pd.DataFrame({'Support Vector: ' + r'$x_n$':[np.nan], 
                 'Margin': [np.nan],
@@ -309,21 +327,38 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
                 r'$\\xi_n': [np.nan],
                 })
         msg = html.Div(dcc.Markdown('Generated Samples'), style={'color': 'green'})
-        print(f'{datetime.now()} : Ending callback_entry')
-        return state_data.__dict__, fig, df_tmp_table.to_dict("records"), n_samples, C, msg
+        params = state.__dict__, fig, df_tmp_table.to_dict("records"), n_samples, C, msg
     elif 'id-classify' in changed_id:
         data = SimpleNamespace(**data)
         if not data.__dict__:
             msg = html.Div(dcc.Markdown('Please generate samples first and then classify'), style={'color': 'red', 'font-size': '24px'})
-            return (*default_data(n_samples, C)[:-1], msg)
-        existing_fig = go.Figure(existing_fig)
-        existing_fig.data = [trace for trace in existing_fig.data if ('Hyperplane' not in trace.name) and ('Suppport Vectors' not in trace.name)]
-        state, fig, df, n_samples, C, msg = classify(existing_fig, data, n_samples, C)
-        print(f'{datetime.now()} : Ending callback_entry')
-        return state.__dict__, fig, df, n_samples, C, msg
+            params = (*default_data(n_samples, C)[:-1], msg)
+        else:
+            existing_fig = go.Figure(existing_fig)
+            existing_fig.data = [trace for trace in existing_fig.data 
+                                if ('Hyperplane' not in trace.name) and 
+                                ('Suppport Vectors' not in trace.name) and
+                                ('SV projections' not in trace.name)
+                                ]
+            state, fig, df, n_samples, C, msg = classify(existing_fig, data, n_samples, C)
+            params = state.__dict__, fig, df, n_samples, C, msg
     else:
-        print(f'{datetime.now()} : Ending callback_entry')
-        return default_data(n_samples, C)
+        fig_minx, fig_maxx, fig_miny, fig_maxy = -2, 2, -2, 2
+        params = default_data(n_samples, C)
+    params[1].update_layout(
+        xaxis=dict(
+            scaleanchor="y",  # Link x-axis to y-axis for equal aspect ratio
+            constrain='domain'  # Prevents the axis from being stretched
+        ),
+        yaxis=dict(
+            scaleanchor="x",  # Link y-axis to x-axis for equal aspect ratio
+            constrain='domain'  # Prevents the axis from being stretched
+        ),
+    )
+    params[1].update_xaxes(range=[state.fig_minx, state.fig_maxx])
+    params[1].update_yaxes(range=[state.fig_miny, state.fig_maxy])
+    print(f'{datetime.now()} : Ending callback_entry')
+    return params
                    
 
 if __name__ == '__main__':
