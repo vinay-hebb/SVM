@@ -23,10 +23,6 @@ def seed_everything(seed_value):
     np.random.seed(seed_value)
 seed_everything(1)              # To keep the behavior cosnsistent when data is loaded from disk
 
-# TO DO:
-# 2) Add interesting datasets for users to explore, and their nitry gritties
-# 3) Write dual problem also
-
 split = False
 th_to_call_sample_on_hyp_plane = 0.001
 pad_x, pad_y = 0.3, 0.3
@@ -71,7 +67,8 @@ app.layout = html.Div([
     dbc.Container([
         dbc.Row([
             dbc.Col([
-                dcc.Graph(id='decision-boundary-plot', mathjax=True)
+                dcc.Graph(id='decision-boundary-plot', mathjax=True, config={'modeBarButtonsToRemove': ['select2d', 'lasso2d', 'hoverClosestCartesian', 'hoverCompareCartesian', 'zoom3d', 'pan3d', 'orbitRotation', 'tableRotation', 'resetCameraDefault3d', 'resetCameraLastSave3d', 'hoverClosest3d', 
+                                                                                                        'resetGeo', 'hoverClosestGeo', 'toImage', 'sendDataToCloud', 'zoomIn', 'zoomOut']}) #'autoScale2d', 'resetScale2d', 
             ], width=6),  # width=6 means it will take 6/12 of the row width
             dbc.Col([
                 html.Div(dash_table.DataTable(id="update-table", style_header={'backgroundColor': 'white', 'fontWeight': 'bold'}))
@@ -99,7 +96,7 @@ app.layout = html.Div([
            1. $\\xi_n$ = 0 if $x_n$ lies on supporting hyperplane corresponding to its class
            2. 0 < $\\xi_n$ < 1 if $x_n$ lies between its own supporting and separating hyperplane  
            3. $\\xi_n$ > 1 if $x_n$ lies on other side of the separating hyperplane. In which case, $x_n$ is classified incorrectly  
-        2. Margin also changes according to value $\\xi_n$
+        2. Perpendicular distance also changes according to value $\\xi_n$
 
         ## To Do:  
         1) Add interesting datasets like moons,.. etc  
@@ -112,9 +109,10 @@ app.layout = html.Div([
 ])
 server = app.server
 
-hyp_eqn = lambda clf, x: np.dot(clf.coef_[0], x) + clf.intercept_[0]
-Xi_eqn = lambda clf, x, y: 1-y*hyp_eqn(clf, x)
-Margin = lambda clf, x: np.abs(hyp_eqn(clf, x)/np.linalg.norm(clf.coef_[0]))  # Considering perpendicular distance
+sep_hyp_eqn = lambda clf, x: np.dot(clf.coef_[0], x) + clf.intercept_[0]
+sup_hyp_eqn = lambda clf, x, y: y*(np.dot(clf.coef_[0], x) + clf.intercept_[0]) - 1
+Distance = lambda clf, x, y: np.abs(sup_hyp_eqn(clf, x, y)/np.linalg.norm(clf.coef_[0]))  # Considering perpendicular distance
+Xi = lambda clf, x, y: 1-y*sep_hyp_eqn(clf, x)
 
 def create_data(size, params):
     u, C = params
@@ -130,7 +128,7 @@ def create_all_classes_data(n_samples, my_data = True):
         y = np.hstack((np.ones(n_samples//2), -1*np.ones(n_samples//2)))
     else:
         X, y = make_classification(n_samples=n_samples, n_informative=2, n_redundant=0, n_features=2, n_classes=2, 
-                                n_clusters_per_class=1, class_sep=2.5, flip_y=0)
+                                n_clusters_per_class=1, class_sep=2.5, flip_y=0.01)
     return X, y
 
 def generate_hyperplanes(w, b, X, xx=None):
@@ -180,7 +178,7 @@ def generate_decision_boundary(fig, X, y, W, b, fig_minx, fig_maxx, fig_miny, fi
               f'Supporting hyperplane: {W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = -1<br>' + \
               f'Supporting hyperplane: {W[0]:.2f}x1 {W[1]:+.2f}x2 {b:+.2f} = 1<br>'
     fig.update_layout(title={'text': title_s, 'y': 1, 'x': 0.5, 'xanchor': 'center', 'yanchor': 'top'}, 
-                      title_font=dict(size=12), xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
+                      title_font=dict(size=12), xaxis_title='$X1$', yaxis_title='$X2$', coloraxis_showscale=False)
     return fig
 
 def classify(state, fig, n_samples, C):
@@ -194,7 +192,7 @@ def classify(state, fig, n_samples, C):
         # X, y = create_all_classes_data(n_samples, my_data=False)
         # state = SimpleNamespace(X=X, y=y, n_samples=n_samples, C=C)
         df_tmp_table = pd.DataFrame({'Support Vector: ' + r'$x_n$':[np.nan], 
-                'Margin': [np.nan],
+                'Distance': [np.nan],
                 r'$\\alpha_n$': [np.nan],
                 r'$\\xi_n': [np.nan],
                 })
@@ -217,10 +215,12 @@ def classify(state, fig, n_samples, C):
     # print(f'{a},{b},{c}')
     textbook_y = y_train
     textbook_y[textbook_y==0] = -1  # Using format as in textbook
+    sv_indices = clf.support_
+    sv_y = textbook_y[sv_indices]
     df = pd.DataFrame({'Support Vector: ' + r'$x_n$':[f"({x[0]:+.2f}, {x[1]:+.2f})" for x in clf.support_vectors_], 
-                  'Margin': [Margin(clf, x) for x in clf.support_vectors_],
+                  'Distance': [Distance(clf, x, y) for x, y in zip(clf.support_vectors_, sv_y)],
                   r'$\\alpha_n$': clf.dual_coef_[0],
-                  r'$\\xi_n': [Xi_eqn(clf, x, textbook_y[idx]) for x, idx in zip(clf.support_vectors_, clf.support_)],
+                  r'$\\xi_n': [Xi(clf, x, textbook_y[idx]) for x, idx in zip(clf.support_vectors_, clf.support_)],
                   })
     df['On support hyperplane?'] = df[r'$\\xi_n'] < th_to_call_sample_on_hyp_plane
     # print(f'Separting Hyperplane equation       : {a:.2f}x1 {b:+.2f}x2 {c:+.2f} = 0')
@@ -231,7 +231,7 @@ def classify(state, fig, n_samples, C):
     # print(confusion_matrix(y_test,y_pred))
     fig = generate_decision_boundary(fig, X_train, y_train, clf.coef_[0], clf.intercept_[0], fig_minx, fig_maxx, fig_miny, fig_maxy)
     
-    if perpendicular_projections:   # Draw perpendicular lines showing margin distance
+    if perpendicular_projections:   # Draw perpendicular lines showing distance
         sv = clf.support_vectors_
         sv_indices = clf.support_
         w = clf.coef_[0]
@@ -242,21 +242,23 @@ def classify(state, fig, n_samples, C):
         # Get labels of support vectors to determine which hyperplane they correspond to
         sv_y = y_train[sv_indices]
         
-        for point, label in zip(sv, sv_y):
+        for i, (point, label) in enumerate(zip(sv, sv_y)):
             print(f'{point}, {label}')
             # For positive class (label=1), project to w·x + b = 1
             # For negative class (label=0 or -1), project to w·x + b = -1
             target_offset = 1 if label == 1 else -1
             
             # Calculate projection point on corresponding hyperplane
-            proj_point = point - (np.dot(w, point) + b - target_offset) / w_norm**2 * w
+            distance = (np.dot(w, point) + b - target_offset) / w_norm
+            proj_point = point - distance * unit_normal
             
             fig.add_trace(go.Scatter(x=[point[0], proj_point[0]], 
                                     y=[point[1], proj_point[1]],
                                     mode='lines',
                                     line=dict(color='red', width=1, dash='dot'),
-                                    name='SV projections',
-                                    showlegend=False))
+                                    name='Support Vector projections',
+                                    legendgroup='Projections',
+                                    showlegend=(i == 0)))
 
         fig.add_trace(go.Scatter(x=sv[:, 0], y=sv[:, 1], mode='markers', name='Support Vectors',
                                 marker=dict(size=30, line=dict(width=3, color='red'),opacity=0.3,color='rgba(0,0,0,0)'), 
@@ -312,7 +314,7 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
         df = pd.DataFrame({'X1':X[:, 0], 'X2':X[:, 1], 'y':y})
         fig = px.scatter(df, x="X1", y="X2", color="y")
         fig.update_traces(marker=dict(size=12, line=dict(width=2, color='DarkSlateGrey')), selector=dict(mode='markers'))
-        fig.update_layout(xaxis_title='$X1$', yaxis_title='$X2$', width=600, height=600, coloraxis_showscale=False)
+        fig.update_layout(xaxis_title='$X1$', yaxis_title='$X2$', coloraxis_showscale=False)
         equal_aspect=True
         if equal_aspect:
             x_min, x_max, y_min, y_max = get_plot_extremes(X[:, 0], X[:, 1])
@@ -323,7 +325,7 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
             state.__dict__.update(fig_minx=fig_minx, fig_maxx=fig_maxx, fig_miny=fig_miny, fig_maxy=fig_maxy)
         # else: TO DO: to be handled
         df_tmp_table = pd.DataFrame({'Support Vector: ' + r'$x_n$':[np.nan], 
-                'Margin': [np.nan],
+                'Distance': [np.nan],
                 r'$\\alpha_n$': [np.nan],
                 r'$\\xi_n': [np.nan],
                 })
@@ -339,7 +341,7 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
             existing_fig.data = [trace for trace in existing_fig.data
                                 if ('Hyperplane' not in trace.name) and 
                                 ('Suppport Vectors' not in trace.name) and
-                                ('SV projections' not in trace.name)
+                                ('Support Vector projections' not in trace.name)
                                 ]
             state, fig, df, n_samples, C, msg = classify(state, existing_fig, n_samples, C)
             params = state, fig, df, n_samples, C, msg
@@ -359,9 +361,15 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
             range=[params[0].fig_miny, params[0].fig_maxy]
         ),
         width=600, height=600,
+        legend=dict(
+            orientation="h",
+            y=-0.1,
+            x=0.5,
+            xanchor='center'
+        ),
     )
-    print(f'{datetime.now()} : Ending callback_entry')
     params = (params[0].__dict__, *params[1:])
+    print(f'{datetime.now()} : Ending callback_entry')
     return params
                    
 
