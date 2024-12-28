@@ -98,12 +98,9 @@ app.layout = html.Div([
            3. $\\xi_n$ > 1 if $x_n$ lies on other side of the separating hyperplane. In which case, $x_n$ is classified incorrectly  
         2. Perpendicular distance also changes according to value $\\xi_n$
 
-        ## To Do:  
-        1) Add interesting datasets like moons,.. etc  
-        2) Discuss about nonlinear SVM  
-        3) Ability to move points to get better insights into optimization problem  
-        4) Ability to generate data as per the inputs of user (amount of overlap, variance, ...etc)  
-        5) For extreme inputs, hyperplanes may not be visible (though they are plotted, they are just outside of 'meaningful' limits). This will be fixed soon.  
+        ## Points to Note:
+        1) At the extreme values of C, SVC is returning unexpected outputs such as sample which is well within supporting hyperplane is considered as support vector!  
+        2) For extreme inputs, hyperplanes may not be visible (though they are plotted, they are just outside of 'meaningful' limits). This will be fixed soon.  
         ''', mathjax=True),
     dcc.Store(id='my_state', storage_type='memory'),
 ])
@@ -112,7 +109,8 @@ server = app.server
 sep_hyp_eqn = lambda clf, x: np.dot(clf.coef_[0], x) + clf.intercept_[0]
 sup_hyp_eqn = lambda clf, x, y: y*(np.dot(clf.coef_[0], x) + clf.intercept_[0]) - 1
 Distance = lambda clf, x, y: np.abs(sup_hyp_eqn(clf, x, y)/np.linalg.norm(clf.coef_[0]))  # Considering perpendicular distance
-Xi = lambda clf, x, y: 1-y*sep_hyp_eqn(clf, x)
+Xi = lambda clf, x, y: max([0, 1-y*sep_hyp_eqn(clf, x)])
+# Xi1 = lambda clf, x, y: np.abs(y - clf.decision_function([x])[0])
 
 def create_data(size, params):
     u, C = params
@@ -223,6 +221,7 @@ def classify(state, fig, n_samples, C):
                   r'$\\xi_n': [Xi(clf, x, textbook_y[idx]) for x, idx in zip(clf.support_vectors_, clf.support_)],
                   })
     df['On support hyperplane?'] = df[r'$\\xi_n'] < th_to_call_sample_on_hyp_plane
+    df.insert(len(df.columns)-1, r'$\\alpha_n$', df.pop(r'$\\alpha_n$'))
     # print(f'Separting Hyperplane equation       : {a:.2f}x1 {b:+.2f}x2 {c:+.2f} = 0')
     # print()
     # print(f"Final Parameters after optimization : ")
