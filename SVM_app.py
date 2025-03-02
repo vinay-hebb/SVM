@@ -242,7 +242,7 @@ def classify(state, fig, n_samples, C):
         sv_y = y_train[sv_indices]
         
         for i, (point, label) in enumerate(zip(sv, sv_y)):
-            print(f'{point}, {label}')
+            # print(f'{point}, {label}')
             # For positive class (label=1), project to w·x + b = 1
             # For negative class (label=0 or -1), project to w·x + b = -1
             target_offset = 1 if label == 1 else -1
@@ -298,7 +298,7 @@ def callback_entry(generate_n_clicks, classify_n_clicks,
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'id-generate' in changed_id or 'load-data1' in changed_id or 'load-data2' in changed_id:
         state = SimpleNamespace()
-        if n_samples > 10000:
+        if n_samples > 1000:
             msg = html.Div(dcc.Markdown('Lets not misuse free resource! ;)'), style={'color': 'red', 'font-size': '24px'})
             return (*default_data(n_samples, C)[:-1], msg)
         if 'id-generate' in changed_id:
