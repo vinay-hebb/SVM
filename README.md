@@ -1,28 +1,35 @@
 ---
-title: SVM
-emoji: 😻
+title: SVM Demo
+emoji: 🎯
 colorFrom: pink
 colorTo: green
 sdk: docker
 pinned: false
 license: apache-2.0
-short_description: SVM Demo
+short_description: Interactive SVM visualization and learning tool
+app_port: 7860
 ---
 
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+# Support Vector Machine (SVM) Interactive Demo
 
-# Simple webapp to gain insights into SVM
+## 🎯 Goal
+This interactive demonstration helps you understand linear SVM with 2 classes through hands-on experimentation. You can modify parameters like sample size and hyperparameter C to see their effects in real-time. The concepts can be extended to multiple classes. 
 
-## Goal
-To provide a simple interactive demonstration of linear SVM with 2 classes(positive and negative) and gain insights. The concepts can be extended to multiple classes. User can choose number of samples, hyperparameter C can be modified to understand their effects. 
+👉 [Launch Interactive Demo](/app) | [View Source Code](https://huggingface.co/spaces/hvinay/SVM/)
 
-If reader is quite faimiliar with SVM then they can directly jump to [Insights](#insights) or the webapp
+## 🚀 Quick Start
+1. Click the "Launch Interactive Demo" link above
+2. Input number of samples and value of C
+3. Click "Generate" to create random data points
+4. If data is satisfactory, click "Classify" to classify and observe separating and supporting hyperplanes
+5. Modify C and click "Classify" to see the effect of C
+6. If required, you can generate different set of data by clicking "Generate"
 
-## Introduction
-A Support Vector Machine (SVM) is a supervised learning model used for classification and regression tasks. It finds the optimal hyperplane that separates data points of different classes in a high-dimensional feature space. The objective of an SVM is to maximize the margin between the data points (support vectors) of each class.
+## 📚 Introduction
+A Support Vector Machine (SVM) is a powerful supervised learning model used for classification and regression tasks. It finds the optimal hyperplane that separates data points of different classes in a high-dimensional feature space, maximizing the margin between support vectors.
 
 ## Prerequistes:
-For brevity, I assume that reader understands about Hyperplane, Support vectors, Maximal Margin classifier.
+For brevity, I assume that user understands about Hyperplane, Support vectors, Maximal Margin classifier.
 
 ## Notations
 
@@ -56,15 +63,6 @@ $minimize_{\mathbf{w},b,\xi_n}$ $\frac{1}{2} \lVert w \rVert^2 + C \sum_{i=n}^{N
 `subject to` $y_n (<w, x_n> + b) \geq 1 - \xi_n \forall n$
 
 C is hyperparameter to tradeoff the margin and total amount of the slack. Separating hyperplane is denoted by $<w, x_n> + b = 0$ and supporting hyperplanes are denoted by $<w, x_n> + b = 1$ and $<w, x_n> + b = -1$
-
-## Workflow
-
-1. Open the link <???>
-2. Input #samples and value of C
-3. Click *Generate* to produce random set of data
-4. If data is satisfactory, click *Classify* to classify and observe separating and supporting hyperplanes
-5. Modify C and click *Classify* to see the effect of C
-6. If required, you can generate different set of data by clicking *Generate*
 
 ## Insights
 

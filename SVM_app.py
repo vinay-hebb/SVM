@@ -17,6 +17,7 @@ from dash import dash_table
 import random
 import pickle
 from types import SimpleNamespace
+
 def seed_everything(seed_value):
     os.environ['PYTHONHASHSEED']=str(seed_value)
     random.seed(seed_value)
@@ -27,7 +28,11 @@ split = False
 th_to_call_sample_on_hyp_plane = 0.001
 pad_x, pad_y = 0.3, 0.3
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__, 
+                external_stylesheets=[dbc.themes.BOOTSTRAP],
+                url_base_pathname='/app/')
+server = app.server
+
 app.layout = html.Div([
     # https://dash.plotly.com/dash-core-components/markdown
     dcc.Markdown('''
@@ -104,8 +109,6 @@ app.layout = html.Div([
         ''', mathjax=True),
     dcc.Store(id='my_state', storage_type='memory'),
 ])
-server = app.server
-
 sep_hyp_eqn = lambda clf, x: np.dot(clf.coef_[0], x) + clf.intercept_[0]
 sup_hyp_eqn = lambda clf, x, y: y*(np.dot(clf.coef_[0], x) + clf.intercept_[0]) - 1
 Distance = lambda clf, x, y: np.abs(sup_hyp_eqn(clf, x, y)/np.linalg.norm(clf.coef_[0]))  # Considering perpendicular distance
@@ -294,7 +297,13 @@ def default_data(n_samples, C):
 def callback_entry(generate_n_clicks, classify_n_clicks, 
                    load_data1_n_clicks, load_data2_n_clicks, # relayoutData,
                    state, n_samples, C, existing_fig):
-    print(f'{datetime.now()} : Starting callback_entry : {generate_n_clicks=}, {classify_n_clicks=}, {load_data1_n_clicks=}, {load_data2_n_clicks=}, {n_samples=}, {C=}')
+    print('Starting callback_entry:', 
+          f'generate_n_clicks={generate_n_clicks}',
+          f'classify_n_clicks={classify_n_clicks}',
+          f'load_data1_n_clicks={load_data1_n_clicks}',
+          f'load_data2_n_clicks={load_data2_n_clicks}',
+          f'n_samples={n_samples}',
+          f'C={C}')
     changed_id = [p['prop_id'] for p in dash.callback_context.triggered][0]
     if 'id-generate' in changed_id or 'load-data1' in changed_id or 'load-data2' in changed_id:
         state = SimpleNamespace()
@@ -376,5 +385,4 @@ if __name__ == '__main__':
     if 'SPACE_ID' in os.environ:
         app.run_server(host='0.0.0.0', debug=False, port=7860)
     else:
-        app.run_server(debug=True, port=7860, dev_tools_hot_reload=True)
-
+        app.run_server(debug=True, port=8050)
