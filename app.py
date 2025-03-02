@@ -80,5 +80,8 @@ def serve_readme():
     return render_template_string(template)
 
 if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 7860))
-    dash_server.run(host='0.0.0.0', port=port)
+    if 'SPACE_ID' in os.environ:
+        port = int(os.environ.get('PORT', 7860))
+        dash_server.run(host='0.0.0.0', port=port)
+    else:
+        dash_server.run(debug=True, port=8050)
